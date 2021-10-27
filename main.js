@@ -11,7 +11,7 @@ import Vector from './scripts/vector.js'
 const scaleFactor = 10 / 6371000;
 // Durata step calcoli fisici [ms]
 const phisicsCalcStep = 300
-// Universal gravitation constant
+// Universal gravitation constant [m^3 / (kg * s^2)]
 export const G = 6.67e-11;
 // Durata step simulazione propagazione [s]
 const simStepSize = 100;
@@ -175,7 +175,7 @@ export function acceleration(attractors, position){
   
   return attractors
   .filter(attr => attr.SORadius != 0)
-  .filter(attr => position.diff(attr.position).module() <= attr.SOIRadius)
+  //.filter(attr => position.diff(attr.position).module() <= attr.SOIRadius)
   .map(attr => {
     let distVector = position.diff(attr.position);
     // Gravity force: G * bodyMass * earthMass / Math.pow(earthDistance, 2)
@@ -192,9 +192,10 @@ export function acceleration(attractors, position){
 * @param {*} scene
 * @param {*} simSize Numero di step.
 * @param {*} color Colore.
+* @param {boolean} dashed 
 * @returns 
 */
-function buildLineMesh(scene, simSize = 1000, color = 'red'){
+function buildLineMesh(scene, simSize, color = 'red', dashed = false){
   
   // Create mesh with fake points, because the BufferGeometry has to be
   // initialized with the right size.
@@ -204,10 +205,22 @@ function buildLineMesh(scene, simSize = 1000, color = 'red'){
   }
   console.log(`Creati ${newSimPoints.length} simpoints`)
   const simGeometry = new THREE.BufferGeometry().setFromPoints(newSimPoints);
-  const simMaterial = new THREE.LineBasicMaterial({ 
-    color : color
-  });
-  
+
+  let simMaterial;
+  if(!dashed){
+    simMaterial = new THREE.LineBasicMaterial({ 
+      color : color
+    });
+  }
+  else {
+    simMaterial = new THREE.LineDashedMaterial({
+      linewidth: 1,
+      color: color,
+      dashSize: .5,
+      gapSize: .1
+    })	  
+  }
+
   const mesh = new THREE.Line( simGeometry, simMaterial );
   mesh.visible = false;
   scene.add(mesh);
@@ -249,10 +262,10 @@ ship.mass = 100000;
 ship.radius = 200000;
 
 //ship.position = earth.position.add(new Vector(- earth.radius - 400e3, 0, 0));
-ship.position = earth.calcSatellitePosition(400e3, -90, -30)
+ship.position = earth.calcSatellitePosition(400e3, -90, 0)
 //ship.velocity = new Vector(0, -7660*Math.cos(56*2*Math.PI/360), -7660*Math.sin(56*2*Math.PI/360));
 // ship.velocity = new Vector(0, 0, -10750+10)
-ship.velocity = new Vector(0, 0, -7650+10)
+ship.velocity = new Vector(0, 0, -7670)
 
 //Create geometry and material
 var shipGeometry = new THREE.SphereGeometry(200000 * scaleFactor, 50, 50 );
@@ -261,7 +274,7 @@ var shipMaterial = new THREE.MeshPhongMaterial({
 });
 ship.mesh = new THREE.Mesh(shipGeometry, shipMaterial);
 
-const shipLineMesh = buildLineMesh(scene, 10000, 'green');
+const shipLineMesh = buildLineMesh(scene, simStepNumber, 'green');
 
 scene.add(ship.mesh);
 setMeshPosition(ship);
@@ -271,16 +284,23 @@ setMeshPosition(ship);
 let simData = {
   deltaV: 2000
 }
-ship.velocity = ship.velocity.norm().scale(7650 + simData.deltaV);
+ship.velocity = ship.velocity.norm().scale(7670 + simData.deltaV);
 const gui = new GUI()
 const maneuverFolder = gui.addFolder("Ship maneuver")
 // maneuverFolder.add(shipManeuver.deltaV, "x", -100, +100, 1).onChange(val => shipManeuver.deltaV.x = val)
 // maneuverFolder.add(shipManeuver.deltaV, "y", -100, +100, 1).onChange(val => shipManeuver.deltaV.y = val)
 // maneuverFolder.add(shipManeuver.deltaV, "z", -100, +100, 1).onChange(val => shipManeuver.deltaV.z = val)
 maneuverFolder.add(simData, "deltaV", 0, +5000, 1).onChange((val) => {
-  ship.velocity = ship.velocity.norm().scale(7650 + val);
+  ship.velocity = ship.velocity.norm().scale(7670 + val);
 })
 maneuverFolder.open()
+
+// ----------------------------------------------------------------------------
+
+// Simulazione orbita con parametri calcolati
+let angleSteps = 36*2;
+let orbitSim = buildLineMesh(scene, angleSteps, 'yellow', true)
+scene.add(orbitSim)
 
 // ----------------------------------------------------------------------------
 
@@ -298,15 +318,64 @@ var render = function (actions) {
   
   // Step calcoli fisici
   if (sinceLastPhysicsCalc > phisicsCalcStep){
+
+	  let v = ship.velocity.module()
+    let r = earth.position.diff(ship.position).module()
+    let M = earth.mass
+
+    // Specific energy (Earth orbit)
+    let specificEnergy = Math.pow(v, 2) / 2.0 - G * M / r
+    document.getElementById('specificEnergyDiv').innerHTML = `Spec. Energy: ${(specificEnergy/1000).toLocaleString(undefined, {maximumFractionDigits:2})} KJ/Kg`
+
+    // Semimajor axis
+    let semimajAxis = - G * M / (2 * specificEnergy)
+    document.getElementById('semimajAxisDiv').innerHTML = `Sma: ${(semimajAxis/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+
+    // Orbit eccentricity
+    let ecc = Math.sqrt(1+(
+      (2 * Math.pow(v, 2) * Math.pow(r, 2) * specificEnergy)
+      /(Math.pow(G, 2) * Math.pow(M, 2))
+    ))
+    document.getElementById('eccDiv').innerHTML = `Ecc: ${(ecc).toFixed(4)}`
+
+    // Orbit shape
+    let apoapsis = (semimajAxis * (1 + ecc)) - earth.radius
+    let periapsis = (semimajAxis * (1 - ecc)) - earth.radius
+    document.getElementById('apoDiv').innerHTML = `ApD: ${(apoapsis/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    document.getElementById('perDiv').innerHTML = `PeD: ${(periapsis/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+
+    // Orbital period
+    let period = 2 * Math.PI * Math.sqrt(Math.pow(semimajAxis, 3) / (G * M))
+    document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
+
+    // Simulate orbit from parameters
+    for (let angleStep = 0; angleStep < angleSteps; angleStep++){
+
+      let theta = (angleStep * 360 / angleSteps) * Math.PI / 180;
+        
+      let r_theta = Math.pow(v * r, 2) / (G * M * (1 + ecc * Math.cos(theta)))
+      
+      let posArray = orbitSim.geometry.getAttribute('position').array;	
+      posArray[angleStep*3] = -r_theta * Math.cos(theta) * scaleFactor;
+      posArray[angleStep*3+1] = .5;
+      posArray[angleStep*3+2] = r_theta * Math.sin(theta) * scaleFactor;
+      
+    }
+    orbitSim.geometry.setDrawRange(0, angleSteps)
+    orbitSim.geometry.attributes.position.needsUpdate = true;		
+    orbitSim.visible = true;	
+    orbitSim.computeLineDistances();  
     
+    // console.log(orbitSim.geometry.getAttribute('position').array)
+
     // Rotate earth
     earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * sinceLastPhysicsCalc;
     
     // Propagate ship status
-    let shipRes = propagate(ship.position, ship.velocity, [earth], sinceLastPhysicsCalc / 1000)
-    ship.position = shipRes[0]
-    ship.velocity = shipRes[1]
-    setMeshPosition(ship);
+    // let shipRes = propagate(ship.position, ship.velocity, [earth], sinceLastPhysicsCalc / 1000)
+    // ship.position = shipRes[0]
+    // ship.velocity = shipRes[1]
+    // setMeshPosition(ship);
     
     // Resetta tempo calcolo fisica
     sinceLastPhysicsCalc = 0;
