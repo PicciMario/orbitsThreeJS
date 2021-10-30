@@ -62,9 +62,42 @@ var starMaterial = new THREE.MeshPhongMaterial({
 var starField = new THREE.Mesh(starGeometry, starMaterial);
 scene.add(starField);
 
-// Axes helper
-// var axesHelper = new THREE.AxesHelper(30);
-// scene.add(axesHelper);
+// Axes helper ----------------------------------------------------------------
+
+var axis = new THREE.AxesHelper(30);
+scene.add(axis);
+
+function createAxisLabel(label, font, x, y, z, color){
+
+  const xGeo = new THREE.TextGeometry( label, {
+    font: font,
+    size: 1,
+    height: .1,
+    curveSegments: 6,
+  });
+
+  let  xMaterial = new THREE.MeshBasicMaterial({ color: color });
+  let  xText = new THREE.Mesh(xGeo , xMaterial);
+  
+  xText.position.x = x
+  xText.position.y = y
+  xText.position.z = z
+  xText.rotation.x = camera.rotation.x;
+  xText.rotation.y = camera.rotation.y;
+  xText.rotation.z = camera.rotation.z;
+  scene.add(xText);  
+
+  return xText
+
+}
+
+const loader = new THREE.FontLoader();
+var xLabel, yLabel, zLabel
+loader.load( 'fonts/helvetiker_regular.typeface.json', function(font){
+  xLabel = createAxisLabel('X', font, 30, 0, 0, 'red')
+  yLabel = createAxisLabel('Y', font, 0, 30, 0, 'green')
+  zLabel = createAxisLabel('Z', font, 0, 0, 30, 'blue')
+});
 
 // ----------------------------------------------------------------------------
 
@@ -315,11 +348,28 @@ var render = function (actions) {
   spentTime = Date.now() - lastIteration;
   sinceLastPhysicsCalc += spentTime;
   lastIteration = Date.now();	
+
+  // Allineamento etichette assi
+  if (xLabel){
+    xLabel.rotation.x = camera.rotation.x;
+    xLabel.rotation.y = camera.rotation.y;
+    xLabel.rotation.z = camera.rotation.z;
+  }
+  if (yLabel){
+    yLabel.rotation.x = camera.rotation.x;
+    yLabel.rotation.y = camera.rotation.y;
+    yLabel.rotation.z = camera.rotation.z;
+  }
+  if (zLabel){
+    zLabel.rotation.x = camera.rotation.x;
+    zLabel.rotation.y = camera.rotation.y;
+    zLabel.rotation.z = camera.rotation.z;
+  }
   
   // Step calcoli fisici
   if (sinceLastPhysicsCalc > phisicsCalcStep){
 
-	  let v = ship.velocity.module()
+	let v = ship.velocity.module()
     let r = earth.position.diff(ship.position).module()
     let M = earth.mass
 
@@ -339,14 +389,23 @@ var render = function (actions) {
     document.getElementById('eccDiv').innerHTML = `Ecc: ${(ecc).toFixed(4)}`
 
     // Orbit shape
-    let apoapsis = (semimajAxis * (1 + ecc)) - earth.radius
-    let periapsis = (semimajAxis * (1 - ecc)) - earth.radius
-    document.getElementById('apoDiv').innerHTML = `ApD: ${(apoapsis/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-    document.getElementById('perDiv').innerHTML = `PeD: ${(periapsis/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    let apoapsis = (semimajAxis * (1 + ecc))
+    let periapsis = (semimajAxis * (1 - ecc))
+    document.getElementById('apoDiv').innerHTML = `ApD: ${((apoapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    document.getElementById('perDiv').innerHTML = `PeD: ${((periapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
 
     // Orbital period
     let period = 2 * Math.PI * Math.sqrt(Math.pow(semimajAxis, 3) / (G * M))
     document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
+
+	// Velocità
+	let vApo = Math.sqrt(G * M * ((2/apoapsis)-(1/semimajAxis)))
+	document.getElementById('vApo').innerHTML = `ApV: ${(vApo).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+	let vPer = Math.sqrt(G * M * ((2/periapsis)-(1/semimajAxis)))
+	document.getElementById('vPer').innerHTML = `PeV: ${(vPer).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+
+	document.getElementById('vCur').innerHTML = `v: ${(v).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+	document.getElementById('rCur').innerHTML = `r: ${(r/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
 
     // Simulate orbit from parameters
     for (let angleStep = 0; angleStep < angleSteps; angleStep++){
