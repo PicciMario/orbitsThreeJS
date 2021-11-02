@@ -294,11 +294,11 @@ var ship = new Body('Ship');
 ship.mass = 100000;
 ship.radius = 200000;
 
-//ship.position = earth.position.add(new Vector(- earth.radius - 400e3, 0, 0));
 ship.position = earth.calcSatellitePosition(400e3, -90, 0)
-//ship.velocity = new Vector(0, -7660*Math.cos(56*2*Math.PI/360), -7660*Math.sin(56*2*Math.PI/360));
-// ship.velocity = new Vector(0, 0, -10750+10)
 ship.velocity = new Vector(0, 0, -7670)
+
+ship.position = new Vector(earth.radius*3, 10000000, earth.radius*3)
+ship.velocity = new Vector(0, 0, 3800)
 
 //Create geometry and material
 var shipGeometry = new THREE.SphereGeometry(200000 * scaleFactor, 50, 50 );
@@ -312,21 +312,45 @@ const shipLineMesh = buildLineMesh(scene, simStepNumber, 'green');
 scene.add(ship.mesh);
 setMeshPosition(ship);
 
+function drawVector(start, vector){
+
+	const lineMat = new THREE.LineBasicMaterial( { color: 0x0000ff } );
+
+	const linePoints = [];
+  linePoints.push( new THREE.Vector3( 
+		start.x,
+		start.y,
+		start.z
+	));
+	linePoints.push( new THREE.Vector3( 
+		start.x + vector.x,
+		start.y + vector.y,
+		start.z + vector.z
+	));
+
+	const lineGeometry = new THREE.BufferGeometry().setFromPoints( linePoints );	
+	
+  const lineMesh = new THREE.Line( lineGeometry, lineMat );
+
+  scene.add(lineMesh)	
+
+}
+
 // ----------------------------------------------------------------------------
 
-let simData = {
-  deltaV: 2000
-}
-ship.velocity = ship.velocity.norm().scale(7670 + simData.deltaV);
-const gui = new GUI()
-const maneuverFolder = gui.addFolder("Ship maneuver")
-// maneuverFolder.add(shipManeuver.deltaV, "x", -100, +100, 1).onChange(val => shipManeuver.deltaV.x = val)
-// maneuverFolder.add(shipManeuver.deltaV, "y", -100, +100, 1).onChange(val => shipManeuver.deltaV.y = val)
-// maneuverFolder.add(shipManeuver.deltaV, "z", -100, +100, 1).onChange(val => shipManeuver.deltaV.z = val)
-maneuverFolder.add(simData, "deltaV", 0, +5000, 1).onChange((val) => {
-  ship.velocity = ship.velocity.norm().scale(7670 + val);
-})
-maneuverFolder.open()
+// let simData = {
+//   deltaV: 2000
+// }
+// ship.velocity = ship.velocity.norm().scale(7670 + simData.deltaV);
+// const gui = new GUI()
+// const maneuverFolder = gui.addFolder("Ship maneuver")
+// // maneuverFolder.add(shipManeuver.deltaV, "x", -100, +100, 1).onChange(val => shipManeuver.deltaV.x = val)
+// // maneuverFolder.add(shipManeuver.deltaV, "y", -100, +100, 1).onChange(val => shipManeuver.deltaV.y = val)
+// // maneuverFolder.add(shipManeuver.deltaV, "z", -100, +100, 1).onChange(val => shipManeuver.deltaV.z = val)
+// maneuverFolder.add(simData, "deltaV", 0, +5000, 1).onChange((val) => {
+//   ship.velocity = ship.velocity.norm().scale(7670 + val);
+// })
+// maneuverFolder.open()
 
 // ----------------------------------------------------------------------------
 
@@ -369,55 +393,65 @@ var render = function (actions) {
   // Step calcoli fisici
   if (sinceLastPhysicsCalc > phisicsCalcStep){
 
-	let v = ship.velocity.module()
-    let r = earth.position.diff(ship.position).module()
-    let M = earth.mass
+  // Initial state vector
+  let v_0 = ship.velocity.module()
+  let r_0 = ship.position.diff(earth.position).module()
+  let angle_0 = ship.position.diff(earth.position).angle(ship.velocity)
 
-    // Specific energy (Earth orbit)
-    let specificEnergy = Math.pow(v, 2) / 2.0 - G * M / r
-    document.getElementById('specificEnergyDiv').innerHTML = `Spec. Energy: ${(specificEnergy/1000).toLocaleString(undefined, {maximumFractionDigits:2})} KJ/Kg`
+  let M = earth.mass
 
-    // Semimajor axis
-    let semimajAxis = - G * M / (2 * specificEnergy)
-    document.getElementById('semimajAxisDiv').innerHTML = `Sma: ${(semimajAxis/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+  // Specific energy (Earth orbit)
+  let specificEnergy = Math.pow(v_0, 2) / 2.0 - G * M / r_0
+  document.getElementById('specificEnergyDiv').innerHTML = `Spec. Energy: ${(specificEnergy/1000).toLocaleString(undefined, {maximumFractionDigits:2})} KJ/Kg`
 
-    // Orbit eccentricity
-    let ecc = Math.sqrt(1+(
-      (2 * Math.pow(v, 2) * Math.pow(r, 2) * specificEnergy)
-      /(Math.pow(G, 2) * Math.pow(M, 2))
-    ))
-    document.getElementById('eccDiv').innerHTML = `Ecc: ${(ecc).toFixed(4)}`
+  // Semimajor axis
+  let sma = - G * M / (2 * specificEnergy)
+  document.getElementById('semimajAxisDiv').innerHTML = `Sma: ${(sma/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
 
-    // Orbit shape
-    let apoapsis = (semimajAxis * (1 + ecc))
-    let periapsis = (semimajAxis * (1 - ecc))
-    document.getElementById('apoDiv').innerHTML = `ApD: ${((apoapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-    document.getElementById('perDiv').innerHTML = `PeD: ${((periapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+  // Orbit eccentricity
+  let ecc = Math.sqrt(1+(
+    (2 * Math.pow(v_0, 2) * Math.pow(r_0, 2) * Math.pow(Math.sin(angle_0), 2) * specificEnergy)
+    /(Math.pow(G, 2) * Math.pow(M, 2))
+  ))
+  document.getElementById('eccDiv').innerHTML = `Ecc: ${(ecc).toFixed(4)}`
 
-    // Orbital period
-    let period = 2 * Math.PI * Math.sqrt(Math.pow(semimajAxis, 3) / (G * M))
-    document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
+  // Orbit shape
+  let apoapsis = (sma * (1 + ecc))
+  let periapsis = (sma * (1 - ecc))
+  document.getElementById('apoDiv').innerHTML = `ApD: ${((apoapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+  document.getElementById('perDiv').innerHTML = `PeD: ${((periapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+
+  // Orbital period
+  let period = 2 * Math.PI * Math.sqrt(Math.pow(sma, 3) / (G * M))
+  document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
+
+	// Inclination
+	// ship position cross velocity is a vector perpendiculat to the orbital plane!
+	let rVect = ship.position.diff(earth.position).cross(ship.velocity)
+	let i = Math.acos(rVect.y / rVect.module())
+	document.getElementById('incl').innerHTML = `Incl: ${(i * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
 
 	// Velocità
-	let vApo = Math.sqrt(G * M * ((2/apoapsis)-(1/semimajAxis)))
+	let vApo = Math.sqrt(G * M * ((2/apoapsis)-(1/sma)))
 	document.getElementById('vApo').innerHTML = `ApV: ${(vApo).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-	let vPer = Math.sqrt(G * M * ((2/periapsis)-(1/semimajAxis)))
+	let vPer = Math.sqrt(G * M * ((2/periapsis)-(1/sma)))
 	document.getElementById('vPer').innerHTML = `PeV: ${(vPer).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
 
-	document.getElementById('vCur').innerHTML = `v: ${(v).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-	document.getElementById('rCur').innerHTML = `r: ${(r/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+	document.getElementById('vCur').innerHTML = `v: ${(v_0).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+	document.getElementById('rCur').innerHTML = `r: ${(r_0/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
 
     // Simulate orbit from parameters
+	let orbit_rotate = -(Math.PI/2)
     for (let angleStep = 0; angleStep < angleSteps; angleStep++){
 
       let theta = (angleStep * 360 / angleSteps) * Math.PI / 180;
         
-      let r_theta = Math.pow(v * r, 2) / (G * M * (1 + ecc * Math.cos(theta)))
+      let r_theta = Math.pow(v_0 * r_0 * Math.sin(angle_0), 2) / (G * M * (1 + ecc * Math.cos(theta)))
       
       let posArray = orbitSim.geometry.getAttribute('position').array;	
-      posArray[angleStep*3] = -r_theta * Math.cos(theta) * scaleFactor;
+      posArray[angleStep*3] = -r_theta * Math.cos(theta + orbit_rotate) * scaleFactor;
       posArray[angleStep*3+1] = .5;
-      posArray[angleStep*3+2] = r_theta * Math.sin(theta) * scaleFactor;
+      posArray[angleStep*3+2] = r_theta * Math.sin(theta + orbit_rotate) * scaleFactor;
       
     }
     orbitSim.geometry.setDrawRange(0, angleSteps)

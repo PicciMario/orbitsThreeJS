@@ -103,9 +103,30 @@ export default class Vector{
       this.z
     )
   }
-    
+
+  /**
+   * Dot product of this Vector vs another.
+   * @param {Vector} other 
+   * @returns 
+   */
   dot(other){
     return (this.x*other.x + this.y*other.y + this.z*other.z)
+  }
+
+  /**
+   * Cross product of this Vector vs another.
+   * @param {Vector} other 
+   * @returns 
+   */
+  cross(other){
+	  let x = this.y * other.z - this.z * other.y
+    let y = this.z * other.x - this.x * other.z
+    let z = this.x * other.y - this.y * other.x
+    return new Vector(x, y, z)
+  }
+
+  angle(other){
+	  return Math.acos(this.dot(other) / (this.module() * other.module()))
   }
                 
 }
