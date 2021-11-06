@@ -19,6 +19,7 @@ export default class Body{
     this.velocity = new Vector();
     
     this.mesh = null;
+	this.speedMesh = null;
   }
   
   /**

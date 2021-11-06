@@ -22,9 +22,9 @@ const simStepNumber = 10000;
 
 // Inizializzazione videocamera
 var camera = new THREE.PerspectiveCamera(45, 1, 1, 100000);
-camera.position.z = 60;
-camera.position.y = 80;
-camera.position.x = -60;
+camera.position.z = -60;
+camera.position.y = 0//80;
+camera.position.x = 0//-60;
 camera.lookAt(0,0,0)
 
 // Inizializzazione canvas
@@ -297,8 +297,8 @@ ship.radius = 200000;
 ship.position = earth.calcSatellitePosition(400e3, -90, 0)
 ship.velocity = new Vector(0, 0, -7670)
 
-ship.position = new Vector(earth.radius*3, 10000000, earth.radius*3)
-ship.velocity = new Vector(0, 0, 3800)
+ship.position = new Vector(earth.radius*2, 10000000, earth.radius*1.5)
+ship.velocity = new Vector(2200, 0, 5500)
 
 //Create geometry and material
 var shipGeometry = new THREE.SphereGeometry(200000 * scaleFactor, 50, 50 );
@@ -306,15 +306,32 @@ var shipMaterial = new THREE.MeshPhongMaterial({
   color: 0xaaaaaa
 });
 ship.mesh = new THREE.Mesh(shipGeometry, shipMaterial);
+ship.speedMesh = new THREE.ArrowHelper(
+  new THREE.Vector3(
+    ship.velocity.x,
+    ship.velocity.y,
+    ship.velocity.z
+  ),
+  new THREE.Vector3(
+    ship.position.x * scaleFactor,
+    ship.position.y * scaleFactor,
+    ship.position.z * scaleFactor
+  ),
+  2,
+  "red"
+)
 
 const shipLineMesh = buildLineMesh(scene, simStepNumber, 'green');
 
 scene.add(ship.mesh);
+scene.add(ship.speedMesh);
 setMeshPosition(ship);
 
-function drawVector(start, vector){
+// ----------------------------------------------------------------------------
 
-	const lineMat = new THREE.LineBasicMaterial( { color: 0x0000ff } );
+function drawVector(start, vector, color = "yellow"){
+
+	const lineMat = new THREE.LineBasicMaterial( { color: color } );
 
 	const linePoints = [];
   linePoints.push( new THREE.Vector3( 
@@ -351,6 +368,46 @@ function drawVector(start, vector){
 //   ship.velocity = ship.velocity.norm().scale(7670 + val);
 // })
 // maneuverFolder.open()
+
+// const geometry = new THREE.PlaneGeometry(10/scaleFactor, 10/scaleFactor);
+// const material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide, opacity: .41, transparent: true} );
+// const plane = new THREE.Mesh( geometry, material );
+// plane.rotation.x = Math.PI / 2
+// scene.add( plane );
+
+function rotate(point, pitch, roll, yaw) {
+  var cosa = Math.cos(yaw);
+  var sina = Math.sin(yaw);
+
+  var cosb = Math.cos(pitch);
+  var sinb = Math.sin(pitch);
+
+  var cosc = Math.cos(roll);
+  var sinc = Math.sin(roll);
+
+  var Axx = cosa*cosb;
+  var Axy = cosa*sinb*sinc - sina*cosc;
+  var Axz = cosa*sinb*cosc + sina*sinc;
+
+  var Ayx = sina*cosb;
+  var Ayy = sina*sinb*sinc + cosa*cosc;
+  var Ayz = sina*sinb*cosc - cosa*sinc;
+
+  var Azx = -sinb;
+  var Azy = cosb*sinc;
+  var Azz = cosb*cosc;
+
+  let px = point.x
+  let py = point.y
+  let pz = point.z
+
+  let x = Axx*px + Axy*py + Axz*pz;
+  let y = Ayx*px + Ayy*py + Ayz*pz;
+  let z = Azx*px + Azy*py + Azz*pz;
+
+  return new Vector(x, y, z)
+
+}
 
 // ----------------------------------------------------------------------------
 
@@ -393,55 +450,65 @@ var render = function (actions) {
   // Step calcoli fisici
   if (sinceLastPhysicsCalc > phisicsCalcStep){
 
-  // Initial state vector
-  let v_0 = ship.velocity.module()
-  let r_0 = ship.position.diff(earth.position).module()
-  let angle_0 = ship.position.diff(earth.position).angle(ship.velocity)
+    // Initial state vector
+    let v_0 = ship.velocity.module()
+    let r_0 = ship.position.diff(earth.position).module()
+    let angle_0 = ship.position.diff(earth.position).angle(ship.velocity)
 
-  let M = earth.mass
+    let M = earth.mass
 
-  // Specific energy (Earth orbit)
-  let specificEnergy = Math.pow(v_0, 2) / 2.0 - G * M / r_0
-  document.getElementById('specificEnergyDiv').innerHTML = `Spec. Energy: ${(specificEnergy/1000).toLocaleString(undefined, {maximumFractionDigits:2})} KJ/Kg`
+    // Specific energy (Earth orbit)
+    let specificEnergy = Math.pow(v_0, 2) / 2.0 - G * M / r_0
+    document.getElementById('specificEnergyDiv').innerHTML = `Spec. Energy: ${(specificEnergy/1000).toLocaleString(undefined, {maximumFractionDigits:2})} KJ/Kg`
 
-  // Semimajor axis
-  let sma = - G * M / (2 * specificEnergy)
-  document.getElementById('semimajAxisDiv').innerHTML = `Sma: ${(sma/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    // Semimajor axis
+    let sma = - G * M / (2 * specificEnergy)
+    document.getElementById('semimajAxisDiv').innerHTML = `Sma: ${(sma/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
 
-  // Orbit eccentricity
-  let ecc = Math.sqrt(1+(
-    (2 * Math.pow(v_0, 2) * Math.pow(r_0, 2) * Math.pow(Math.sin(angle_0), 2) * specificEnergy)
-    /(Math.pow(G, 2) * Math.pow(M, 2))
-  ))
-  document.getElementById('eccDiv').innerHTML = `Ecc: ${(ecc).toFixed(4)}`
+    // Orbit eccentricity
+    let ecc = Math.sqrt(1+(
+      (2 * Math.pow(v_0, 2) * Math.pow(r_0, 2) * Math.pow(Math.sin(angle_0), 2) * specificEnergy)
+      /(Math.pow(G, 2) * Math.pow(M, 2))
+    ))
+    document.getElementById('eccDiv').innerHTML = `Ecc: ${(ecc).toFixed(4)}`
 
-  // Orbit shape
-  let apoapsis = (sma * (1 + ecc))
-  let periapsis = (sma * (1 - ecc))
-  document.getElementById('apoDiv').innerHTML = `ApD: ${((apoapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-  document.getElementById('perDiv').innerHTML = `PeD: ${((periapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    // Orbit shape
+    let apoapsis = (sma * (1 + ecc))
+    let periapsis = (sma * (1 - ecc))
+    document.getElementById('apoDiv').innerHTML = `ApD: ${((apoapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    document.getElementById('perDiv').innerHTML = `PeD: ${((periapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
 
-  // Orbital period
-  let period = 2 * Math.PI * Math.sqrt(Math.pow(sma, 3) / (G * M))
-  document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
+    // Orbital period
+    let period = 2 * Math.PI * Math.sqrt(Math.pow(sma, 3) / (G * M))
+    document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
 
-	// Inclination
-	// ship position cross velocity is a vector perpendiculat to the orbital plane!
-	let rVect = ship.position.diff(earth.position).cross(ship.velocity)
-	let i = Math.acos(rVect.y / rVect.module())
-	document.getElementById('incl').innerHTML = `Incl: ${(i * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
+    // Inclination
+    // ship position cross velocity is a vector perpendiculat to the orbital plane!
+    let rVect = ship.position.diff(earth.position).cross(ship.velocity)
+    let i = Math.acos(rVect.y / rVect.module())
+    document.getElementById('incl').innerHTML = `Incl: ${(i * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
 
-	// Velocità
-	let vApo = Math.sqrt(G * M * ((2/apoapsis)-(1/sma)))
-	document.getElementById('vApo').innerHTML = `ApV: ${(vApo).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-	let vPer = Math.sqrt(G * M * ((2/periapsis)-(1/sma)))
-	document.getElementById('vPer').innerHTML = `PeV: ${(vPer).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+    // Longitude of ascending node
+    let n = new Vector(0, 1, 0).cross(rVect)
+    let longAsc = Math.acos(n.x / n.module())
+    document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAsc * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
+    drawVector(earth.position.scale(scaleFactor), new Vector(
+      Math.cos(longAsc),
+      0,
+      -Math.sin(longAsc),
+    ).scale(15), "cyan")
 
-	document.getElementById('vCur').innerHTML = `v: ${(v_0).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-	document.getElementById('rCur').innerHTML = `r: ${(r_0/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    // Velocità
+    let vApo = Math.sqrt(G * M * ((2/apoapsis)-(1/sma)))
+    document.getElementById('vApo').innerHTML = `ApV: ${(vApo).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+    let vPer = Math.sqrt(G * M * ((2/periapsis)-(1/sma)))
+    document.getElementById('vPer').innerHTML = `PeV: ${(vPer).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+
+    document.getElementById('vCur').innerHTML = `v: ${(v_0).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+    document.getElementById('rCur').innerHTML = `r: ${(r_0/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
 
     // Simulate orbit from parameters
-	let orbit_rotate = -(Math.PI/2)
+    let orbit_rotate = 0
     for (let angleStep = 0; angleStep < angleSteps; angleStep++){
 
       let theta = (angleStep * 360 / angleSteps) * Math.PI / 180;
@@ -449,9 +516,31 @@ var render = function (actions) {
       let r_theta = Math.pow(v_0 * r_0 * Math.sin(angle_0), 2) / (G * M * (1 + ecc * Math.cos(theta)))
       
       let posArray = orbitSim.geometry.getAttribute('position').array;	
-      posArray[angleStep*3] = -r_theta * Math.cos(theta + orbit_rotate) * scaleFactor;
-      posArray[angleStep*3+1] = .5;
-      posArray[angleStep*3+2] = r_theta * Math.sin(theta + orbit_rotate) * scaleFactor;
+
+      // Ellisse
+      let x = -r_theta * Math.cos(theta + orbit_rotate) * scaleFactor;
+      let y = 0;
+      let z = r_theta * Math.sin(theta + orbit_rotate) * scaleFactor;
+
+      // Inclinazione
+      //   y = x * Math.sin(i)
+      //   x = x * Math.cos(i)
+
+        let rot = new Vector(x, y, z)
+      //   rot = rotate(rot, 
+      //     Math.PI / 180 * 15,
+      //     Math.PI / 180 * -9,
+      //     -i
+      //   )
+
+      // rot = rotate(rot, 
+      //   0,0,
+      //   -i
+      // )      
+
+      posArray[angleStep*3] = rot.x;
+      posArray[angleStep*3+1] = rot.y;
+      posArray[angleStep*3+2] = rot.z;
       
     }
     orbitSim.geometry.setDrawRange(0, angleSteps)
@@ -465,10 +554,10 @@ var render = function (actions) {
     earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * sinceLastPhysicsCalc;
     
     // Propagate ship status
-    // let shipRes = propagate(ship.position, ship.velocity, [earth], sinceLastPhysicsCalc / 1000)
-    // ship.position = shipRes[0]
-    // ship.velocity = shipRes[1]
-    // setMeshPosition(ship);
+    let shipRes = propagate(ship.position, ship.velocity, [earth], sinceLastPhysicsCalc / 1000)
+    ship.position = shipRes[0]
+    ship.velocity = shipRes[1]
+    setMeshPosition(ship);
     
     // Resetta tempo calcolo fisica
     sinceLastPhysicsCalc = 0;
