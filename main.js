@@ -483,13 +483,13 @@ var render = function (actions) {
     document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
 
     // Inclination
-    // ship position cross velocity is a vector perpendiculat to the orbital plane!
-    let rVect = ship.position.diff(earth.position).cross(ship.velocity)
-    let i = Math.acos(rVect.y / rVect.module())
+    // ship position cross velocity is a vector perpendicular to the orbital plane!
+    let h = ship.position.diff(earth.position).cross(ship.velocity) // specific angular (orbital) moment vector
+    let i = Math.acos(h.y / h.module())
     document.getElementById('incl').innerHTML = `Incl: ${(i * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
 
     // Longitude of ascending node
-    let n = new Vector(0, 1, 0).cross(rVect)
+    let n = new Vector(0, 1, 0).cross(h)
     let longAsc = Math.acos(n.x / n.module())
     document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAsc * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
     drawVector(earth.position.scale(scaleFactor), new Vector(
@@ -497,6 +497,21 @@ var render = function (actions) {
       0,
       -Math.sin(longAsc),
     ).scale(15), "cyan")
+
+    // Eccentricity vector
+    // vector with direction pointing from apoapsis to periapsis and with magnitude equal to the orbit's scalar eccentricity
+    let r = ship.position.diff(earth.position) // position vector
+    let eccVector = ship.velocity.cross(h).scale(1/(G*M)).diff(r.scale(1/r.module()))
+    
+    // Argument of periapsis
+    let argPer = Math.acos(n.dot(eccVector)/(n.module() * eccVector.module()))
+    let longPer = longAsc - argPer
+    document.getElementById('longPer').innerHTML = `LongPer: ${(longPer * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
+    drawVector(earth.position.scale(scaleFactor), new Vector(
+      Math.cos(longPer),
+      0,
+      -Math.sin(longPer),
+    ).scale(15), "yellow")
 
     // Velocità
     let vApo = Math.sqrt(G * M * ((2/apoapsis)-(1/sma)))
@@ -518,25 +533,25 @@ var render = function (actions) {
       let posArray = orbitSim.geometry.getAttribute('position').array;	
 
       // Ellisse
-      let x = -r_theta * Math.cos(theta + orbit_rotate) * scaleFactor;
+      let x = r_theta * Math.cos(theta + orbit_rotate) * scaleFactor;
       let y = 0;
       let z = r_theta * Math.sin(theta + orbit_rotate) * scaleFactor;
 
-      // Inclinazione
-      //   y = x * Math.sin(i)
-      //   x = x * Math.cos(i)
-
-        let rot = new Vector(x, y, z)
-      //   rot = rotate(rot, 
+       //   rot = rotate(rot, 
       //     Math.PI / 180 * 15,
       //     Math.PI / 180 * -9,
       //     -i
       //   )
 
       // rot = rotate(rot, 
-      //   0,0,
-      //   -i
+      //   0,
+      //   -longPer,
+      //   0
       // )      
+      
+      let rot = new Vector(x, y, z)
+
+      rot = rotate(rot, longPer, 0, 0)
 
       posArray[angleStep*3] = rot.x;
       posArray[angleStep*3+1] = rot.y;
