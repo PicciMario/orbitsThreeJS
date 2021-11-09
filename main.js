@@ -21,7 +21,7 @@ const simStepNumber = 10000;
 // --- Inizializzazione elementi fissi ----------------------------------------
 
 // Inizializzazione videocamera
-var camera = new THREE.PerspectiveCamera(45, 1, 1, 100000);
+var camera = new THREE.PerspectiveCamera(30, 1, 1, 100000);
 camera.position.z = -60;
 camera.position.y = 0//80;
 camera.position.x = 0//-60;
@@ -236,7 +236,7 @@ function buildLineMesh(scene, simSize, color = 'red', dashed = false){
   for (let i = 0; i < simSize; i++){
     newSimPoints.push(new THREE.Vector3(0,0,0));
   }
-  console.log(`Creati ${newSimPoints.length} simpoints`)
+
   const simGeometry = new THREE.BufferGeometry().setFromPoints(newSimPoints);
 
   let simMaterial;
@@ -375,46 +375,31 @@ function drawVector(start, vector, color = "yellow"){
 // plane.rotation.x = Math.PI / 2
 // scene.add( plane );
 
-function rotate(point, pitch, roll, yaw) {
-  var cosa = Math.cos(yaw);
-  var sina = Math.sin(yaw);
-
-  var cosb = Math.cos(pitch);
-  var sinb = Math.sin(pitch);
-
-  var cosc = Math.cos(roll);
-  var sinc = Math.sin(roll);
-
-  var Axx = cosa*cosb;
-  var Axy = cosa*sinb*sinc - sina*cosc;
-  var Axz = cosa*sinb*cosc + sina*sinc;
-
-  var Ayx = sina*cosb;
-  var Ayy = sina*sinb*sinc + cosa*cosc;
-  var Ayz = sina*sinb*cosc - cosa*sinc;
-
-  var Azx = -sinb;
-  var Azy = cosb*sinc;
-  var Azz = cosb*cosc;
-
-  let px = point.x
-  let py = point.y
-  let pz = point.z
-
-  let x = Axx*px + Axy*py + Axz*pz;
-  let y = Ayx*px + Ayy*py + Ayz*pz;
-  let z = Azx*px + Azy*py + Azz*pz;
-
-  return new Vector(x, y, z)
-
-}
-
 // ----------------------------------------------------------------------------
 
 // Simulazione orbita con parametri calcolati
 let angleSteps = 36*2;
 let orbitSim = buildLineMesh(scene, angleSteps, 'yellow', true)
 scene.add(orbitSim)
+
+// ----------------------------------------------------------------------------
+
+// Rotazione (forzata) su parametri orbitali
+
+// Apply longitude of ascending node
+orbitSim.rotateOnAxis(new THREE.Vector3(0,1,0).normalize(), 111.8 * Math.PI / 180)
+
+// Apply argument of periapsis
+let eccVectorPerp = ship.position.diff(earth.position).cross(ship.velocity).norm()
+orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), 32.08 * Math.PI / 180)
+
+// Apply inclination
+let eccVector = new Vector(
+  -0.00020780059569803667,
+  0.40900231801339676,
+  -0.9125333203114179  
+)
+orbitSim.rotateOnWorldAxis(eccVector.toTHREEVector3(), 129.63 * Math.PI / 180)
 
 // ----------------------------------------------------------------------------
 
@@ -505,13 +490,7 @@ var render = function (actions) {
     
     // Argument of periapsis
     let argPer = Math.acos(n.dot(eccVector)/(n.module() * eccVector.module()))
-    let longPer = longAsc - argPer
-    document.getElementById('longPer').innerHTML = `LongPer: ${(longPer * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-    drawVector(earth.position.scale(scaleFactor), new Vector(
-      Math.cos(longPer),
-      0,
-      -Math.sin(longPer),
-    ).scale(15), "yellow")
+    document.getElementById('argPer').innerHTML = `Arg.per: ${(argPer * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
 
     // Velocità
     let vApo = Math.sqrt(G * M * ((2/apoapsis)-(1/sma)))
@@ -523,7 +502,6 @@ var render = function (actions) {
     document.getElementById('rCur').innerHTML = `r: ${(r_0/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
 
     // Simulate orbit from parameters
-    let orbit_rotate = 0
     for (let angleStep = 0; angleStep < angleSteps; angleStep++){
 
       let theta = (angleStep * 360 / angleSteps) * Math.PI / 180;
@@ -533,38 +511,21 @@ var render = function (actions) {
       let posArray = orbitSim.geometry.getAttribute('position').array;	
 
       // Ellisse
-      let x = r_theta * Math.cos(theta + orbit_rotate) * scaleFactor;
+      let x = r_theta * Math.cos(theta) * scaleFactor;
       let y = 0;
-      let z = r_theta * Math.sin(theta + orbit_rotate) * scaleFactor;
+      let z = r_theta * Math.sin(theta) * scaleFactor;
 
-       //   rot = rotate(rot, 
-      //     Math.PI / 180 * 15,
-      //     Math.PI / 180 * -9,
-      //     -i
-      //   )
-
-      // rot = rotate(rot, 
-      //   0,
-      //   -longPer,
-      //   0
-      // )      
-      
-      let rot = new Vector(x, y, z)
-
-      rot = rotate(rot, longPer, 0, 0)
-
-      posArray[angleStep*3] = rot.x;
-      posArray[angleStep*3+1] = rot.y;
-      posArray[angleStep*3+2] = rot.z;
+      posArray[angleStep*3] = x;
+      posArray[angleStep*3+1] = y;
+      posArray[angleStep*3+2] = z;
       
     }
+
     orbitSim.geometry.setDrawRange(0, angleSteps)
     orbitSim.geometry.attributes.position.needsUpdate = true;		
     orbitSim.visible = true;	
-    orbitSim.computeLineDistances();  
+    orbitSim.computeLineDistances(); 
     
-    // console.log(orbitSim.geometry.getAttribute('position').array)
-
     // Rotate earth
     earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * sinceLastPhysicsCalc;
     

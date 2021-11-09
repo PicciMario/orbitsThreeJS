@@ -1,3 +1,5 @@
+import * as THREE from '../build/three.module.js'
+
 export default class Vector{
   
   constructor(x = 0, y = 0, z = 0){
@@ -106,8 +108,8 @@ export default class Vector{
 
   /**
    * Dot product of this Vector vs another.
-   * @param {Vector} other 
-   * @returns 
+   * @param {Vector} other Other Vector
+   * @returns Dot product
    */
   dot(other){
     return (this.x*other.x + this.y*other.y + this.z*other.z)
@@ -115,8 +117,8 @@ export default class Vector{
 
   /**
    * Cross product of this Vector vs another.
-   * @param {Vector} other 
-   * @returns 
+   * @param {Vector} other Other Vector
+   * @returns Cross product
    */
   cross(other){
 	  let x = this.y * other.z - this.z * other.y
@@ -125,8 +127,25 @@ export default class Vector{
     return new Vector(x, y, z)
   }
 
+  /**
+   * Angle between this and another Vector
+   * @param {Vector} other Other Vector.
+   * @returns Angle (rad)
+   */
   angle(other){
 	  return Math.acos(this.dot(other) / (this.module() * other.module()))
+  }
+
+  /**
+   * Returns this vector as THREE.Vector3
+   * @returns 
+   */
+  toTHREEVector3(){
+    return new THREE.Vector3(
+      this.x,
+      this.y,
+      this.z
+    )
   }
                 
 }
