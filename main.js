@@ -123,17 +123,35 @@ function resizeRendererToDisplaySizeIfNeeded(renderer) {
 * @param {number} [myScaleFactor] Fattore di scala.
 */
 function setMeshPosition(body, myScaleFactor = scaleFactor){
+
   if (body == null){
     log.console.error('Tentativo di setMeshPosition con body nullo!');
     return;
   }
+
   if (body == null){
     log.console.error(`Tentativo di setMeshPosition (body ${body.name}) con mesh nullo!`);
     return;
   }
+
   body.mesh.position.x = body.position.x * myScaleFactor;
   body.mesh.position.y = body.position.y * myScaleFactor;
   body.mesh.position.z = body.position.z * myScaleFactor;
+
+  if (body.speedMesh == null) return;
+  
+  body.speedMesh.setDirection(
+    new THREE.Vector3(
+      body.velocity.x,
+      body.velocity.y,
+      body.velocity.z
+    ).normalize()    
+  )
+
+  body.speedMesh.position.x = body.position.x * myScaleFactor;
+  body.speedMesh.position.y = body.position.y * myScaleFactor;
+  body.speedMesh.position.z = body.position.z * myScaleFactor;
+
 }
 
 /**
@@ -294,11 +312,31 @@ var ship = new Body('Ship');
 ship.mass = 100000;
 ship.radius = 200000;
 
-ship.position = earth.calcSatellitePosition(400e3, -90, 0)
-ship.velocity = new Vector(0, 0, -7670)
+ship.position = earth.calcSatellitePosition(400e3, 0, 0)
+ship.velocity = new Vector(-7670-2500, 1000, 0)
 
-ship.position = new Vector(earth.radius*2, 10000000, earth.radius*1.5)
-ship.velocity = new Vector(2200, 0, 5500)
+document.getElementById('orbit0').addEventListener('click', function (event) {
+  ship.position = earth.calcSatellitePosition(400e3, 0, 0)
+  ship.velocity = new Vector(-7670-2500, 1000, 0)
+});
+document.getElementById('orbit1').addEventListener('click', function (event) {
+  ship.position = earth.calcSatellitePosition(400e3, 0, 0)
+  ship.velocity = new Vector(-7670-2500, -1000, 0)  
+});
+document.getElementById('orbit2').addEventListener('click', function (event) {
+  ship.position = earth.calcSatellitePosition(400e3, 0, 0)
+  ship.velocity = new Vector(7670+2500, 1000, 0)
+});
+document.getElementById('orbit3').addEventListener('click', function (event) {
+  ship.position = earth.calcSatellitePosition(400e3, 0, 0)
+  ship.velocity = new Vector(7670+2500, -1000, 0)  
+});
+
+document.getElementById('orbit4').addEventListener('click', function (event) {
+  ship.position = new Vector(earth.radius*2, 10000000, earth.radius*1.8)
+  ship.velocity = new Vector(2200, 0, 5500)
+});
+
 
 //Create geometry and material
 var shipGeometry = new THREE.SphereGeometry(200000 * scaleFactor, 50, 50 );
@@ -311,7 +349,7 @@ ship.speedMesh = new THREE.ArrowHelper(
     ship.velocity.x,
     ship.velocity.y,
     ship.velocity.z
-  ),
+  ).normalize(),
   new THREE.Vector3(
     ship.position.x * scaleFactor,
     ship.position.y * scaleFactor,
@@ -381,25 +419,6 @@ function drawVector(start, vector, color = "yellow"){
 let angleSteps = 36*2;
 let orbitSim = buildLineMesh(scene, angleSteps, 'yellow', true)
 scene.add(orbitSim)
-
-// ----------------------------------------------------------------------------
-
-// Rotazione (forzata) su parametri orbitali
-
-// Apply longitude of ascending node
-orbitSim.rotateOnAxis(new THREE.Vector3(0,1,0).normalize(), 111.8 * Math.PI / 180)
-
-// Apply argument of periapsis
-let eccVectorPerp = ship.position.diff(earth.position).cross(ship.velocity).norm()
-orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), 32.08 * Math.PI / 180)
-
-// Apply inclination
-let eccVector = new Vector(
-  -0.00020780059569803667,
-  0.40900231801339676,
-  -0.9125333203114179  
-)
-orbitSim.rotateOnWorldAxis(eccVector.toTHREEVector3(), 129.63 * Math.PI / 180)
 
 // ----------------------------------------------------------------------------
 
@@ -476,6 +495,8 @@ var render = function (actions) {
     // Longitude of ascending node
     let n = new Vector(0, 1, 0).cross(h)
     let longAsc = Math.acos(n.x / n.module())
+    if (n.x < .1) longAsc = 2*Math.PI - longAsc
+    if (isNaN(longAsc)) longAsc = 0
     document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAsc * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
     drawVector(earth.position.scale(scaleFactor), new Vector(
       Math.cos(longAsc),
@@ -500,7 +521,8 @@ var render = function (actions) {
 
     document.getElementById('vCur').innerHTML = `v: ${(v_0).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
     document.getElementById('rCur').innerHTML = `r: ${(r_0/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-
+    document.getElementById('thetaCur').innerHTML = `theta: ${(angle_0*180/Math.PI).toLocaleString(undefined, {maximumFractionDigits:1})} deg.`
+    
     // Simulate orbit from parameters
     for (let angleStep = 0; angleStep < angleSteps; angleStep++){
 
@@ -525,6 +547,24 @@ var render = function (actions) {
     orbitSim.geometry.attributes.position.needsUpdate = true;		
     orbitSim.visible = true;	
     orbitSim.computeLineDistances(); 
+
+    // Rotazione (forzata) su parametri orbitali
+
+    // Reset rotation
+    orbitSim.rotation.x = 0
+    orbitSim.rotation.y = 0
+    orbitSim.rotation.z = 0
+
+    // Apply longitude of ascending node
+    orbitSim.rotateOnAxis(new THREE.Vector3(0,1,0).normalize(), -longAsc)
+
+    // Apply argument of periapsis
+    let eccVectorPerp = ship.position.diff(earth.position).cross(ship.velocity).norm()
+    orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), argPer)
+
+    // Apply inclination
+    orbitSim.rotateOnWorldAxis(eccVector.norm().toTHREEVector3(), i)	
+    
     
     // Rotate earth
     earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * sinceLastPhysicsCalc;

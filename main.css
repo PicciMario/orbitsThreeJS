@@ -15,3 +15,18 @@ html, body {
 	top: 200px;
 	left: 20px;
 }
+#orbits{
+	position: absolute;
+	background-color: black;
+	color: lightgreen;
+	top: 100px;
+	right: 100px;
+	border: 1px solid lightgreen;
+	padding: 5px;
+}
+.orbit{
+	margin-top: 5px;
+	margin-bottom: 5px;
+	margin-left: 10px;
+	margin-right: 10px;
+}
