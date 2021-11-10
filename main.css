@@ -12,7 +12,7 @@ html, body {
 	background-color: black;
 	border: 8px solid black;
 	color: white;
-	top: 200px;
+	top: 100px;
 	left: 20px;
 }
 #orbits{
@@ -23,6 +23,10 @@ html, body {
 	right: 100px;
 	border: 1px solid lightgreen;
 	padding: 5px;
+}
+.orbits-selected{
+	background-color: lightgreen;
+	color: black;
 }
 .orbit{
 	margin-top: 5px;

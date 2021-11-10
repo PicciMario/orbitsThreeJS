@@ -314,27 +314,40 @@ ship.radius = 200000;
 
 ship.position = earth.calcSatellitePosition(400e3, 0, 0)
 ship.velocity = new Vector(-7670-2500, 1000, 0)
+document.getElementById('orbit0').classList.add('orbits-selected')
+
+function select(id){
+  Array.from(document.getElementsByClassName("orbits-selected")).forEach(
+    elem => elem.classList.remove('orbits-selected')
+  )
+  document.getElementById(id).classList.add('orbits-selected')
+}
 
 document.getElementById('orbit0').addEventListener('click', function (event) {
   ship.position = earth.calcSatellitePosition(400e3, 0, 0)
   ship.velocity = new Vector(-7670-2500, 1000, 0)
+  select('orbit0')
 });
 document.getElementById('orbit1').addEventListener('click', function (event) {
   ship.position = earth.calcSatellitePosition(400e3, 0, 0)
   ship.velocity = new Vector(-7670-2500, -1000, 0)  
+  select('orbit1')
 });
 document.getElementById('orbit2').addEventListener('click', function (event) {
   ship.position = earth.calcSatellitePosition(400e3, 0, 0)
   ship.velocity = new Vector(7670+2500, 1000, 0)
+  select('orbit2')
 });
 document.getElementById('orbit3').addEventListener('click', function (event) {
   ship.position = earth.calcSatellitePosition(400e3, 0, 0)
-  ship.velocity = new Vector(7670+2500, -1000, 0)  
+  ship.velocity = new Vector(7670+2500, -1000, 0) 
+  select('orbit3')
 });
 
 document.getElementById('orbit4').addEventListener('click', function (event) {
   ship.position = new Vector(earth.radius*2, 10000000, earth.radius*1.8)
   ship.velocity = new Vector(2200, 0, 5500)
+  select('orbit4')  
 });
 
 
@@ -495,13 +508,13 @@ var render = function (actions) {
     // Longitude of ascending node
     let n = new Vector(0, 1, 0).cross(h)
     let longAsc = Math.acos(n.x / n.module())
-    if (n.x < .1) longAsc = 2*Math.PI - longAsc
+    if (n.z < .1) longAsc = 2*Math.PI - longAsc
     if (isNaN(longAsc)) longAsc = 0
     document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAsc * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
     drawVector(earth.position.scale(scaleFactor), new Vector(
       Math.cos(longAsc),
       0,
-      -Math.sin(longAsc),
+      Math.sin(longAsc),
     ).scale(15), "cyan")
 
     // Eccentricity vector
@@ -570,7 +583,8 @@ var render = function (actions) {
     earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * sinceLastPhysicsCalc;
     
     // Propagate ship status
-    let shipRes = propagate(ship.position, ship.velocity, [earth], sinceLastPhysicsCalc / 1000)
+    let simSpeed = 1
+    let shipRes = propagate(ship.position, ship.velocity, [earth], sinceLastPhysicsCalc / 1000 * simSpeed)
     ship.position = shipRes[0]
     ship.velocity = shipRes[1]
     setMeshPosition(ship);
