@@ -33,4 +33,9 @@ html, body {
 	margin-bottom: 5px;
 	margin-left: 10px;
 	margin-right: 10px;
+	box-shadow: 0 0 5px 2px rgba(4, 255, 117, 0.404);
+    cursor:pointer;	
+    vertical-align:middle;
+    padding: 3px;
+    text-align: center;	
 }

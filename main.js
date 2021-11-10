@@ -350,6 +350,12 @@ document.getElementById('orbit4').addEventListener('click', function (event) {
   select('orbit4')  
 });
 
+document.getElementById('orbit5').addEventListener('click', function (event) {
+  ship.position = earth.calcSatellitePosition(400e3, 80, -40)
+  ship.velocity = new Vector(0, 1000, -7670-2500)
+  select('orbit5')  
+});
+
 
 //Create geometry and material
 var shipGeometry = new THREE.SphereGeometry(200000 * scaleFactor, 50, 50 );
