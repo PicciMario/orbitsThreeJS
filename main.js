@@ -312,55 +312,73 @@ var ship = new Body('Ship');
 ship.mass = 100000;
 ship.radius = 200000;
 
-ship.position = earth.calcSatellitePosition(400e3, 0, 0)
-ship.velocity = new Vector(-7670-2500, 1000, 0)
-document.getElementById('orbit0').classList.add('orbits-selected')
+// Meccanismo di selezione di casi di test
 
-function select(id){
-  Array.from(document.getElementsByClassName("orbits-selected")).forEach(
-    elem => elem.classList.remove('orbits-selected')
-  )
-  document.getElementById(id).classList.add('orbits-selected')
-}
+let orbitTests = [
+	{
+		desc: 'Zero',
+		position: earth.calcSatellitePosition(400e3, 0, 0),
+		velocity: new Vector(-7670-2500, 1000, 0)
+	},
+	{
+		desc: 'Uno',
+		position: earth.calcSatellitePosition(400e3, 0, 0),
+		velocity: new Vector(-7670-2500, -1000, 0) 		
+	},
+  {
+    desc: 'Due',
+    position: earth.calcSatellitePosition(400e3, 0, 0),
+    velocity: new Vector(7670+2500, 1000, 0)    
+  },
+  {
+    desc: 'Tre',
+    position: earth.calcSatellitePosition(400e3, 0, 0),
+    velocity: new Vector(7670+2500, -1000, 0)     
+  },
+  {
+    desc: 'Quattro',
+    position: new Vector(earth.radius*2, 10000000, earth.radius*1.8),
+    velocity: new Vector(2200, 0, 5500)    
+  },
+  {
+    desc: 'Cinque',
+    position: earth.calcSatellitePosition(400e3, 80, -40),
+    velocity: new Vector(0, 1000, -7670-2500)    
+  },
+  {
+    desc: 'Eq. Circ.',
+    position: earth.calcSatellitePosition(400e3, 0, 0),
+    velocity: new Vector(-7670, 0, 0)    
+  }  
+]
 
-document.getElementById('orbit0').addEventListener('click', function (event) {
-  ship.position = earth.calcSatellitePosition(400e3, 0, 0)
-  ship.velocity = new Vector(-7670-2500, 1000, 0)
-  select('orbit0')
-});
-document.getElementById('orbit1').addEventListener('click', function (event) {
-  ship.position = earth.calcSatellitePosition(400e3, 0, 0)
-  ship.velocity = new Vector(-7670-2500, -1000, 0)  
-  select('orbit1')
-});
-document.getElementById('orbit2').addEventListener('click', function (event) {
-  ship.position = earth.calcSatellitePosition(400e3, 0, 0)
-  ship.velocity = new Vector(7670+2500, 1000, 0)
-  select('orbit2')
-});
-document.getElementById('orbit3').addEventListener('click', function (event) {
-  ship.position = earth.calcSatellitePosition(400e3, 0, 0)
-  ship.velocity = new Vector(7670+2500, -1000, 0) 
-  select('orbit3')
-});
-
-document.getElementById('orbit4').addEventListener('click', function (event) {
-  ship.position = new Vector(earth.radius*2, 10000000, earth.radius*1.8)
-  ship.velocity = new Vector(2200, 0, 5500)
-  select('orbit4')  
-});
-
-document.getElementById('orbit5').addEventListener('click', function (event) {
-  ship.position = earth.calcSatellitePosition(400e3, 80, -40)
-  ship.velocity = new Vector(0, 1000, -7670-2500)
-  select('orbit5')  
-});
+orbitTests.forEach(({desc, position, velocity}, i) => {
+  let id = `orbitTest${i}`
+	let newDiv = document.createElement('div')
+  newDiv.id = id
+	newDiv.innerHTML = desc
+	newDiv.classList.add('orbit')
+	newDiv.addEventListener('click', function (event) {
+    ship.position = position
+    ship.velocity = velocity
+    Array.from(document.getElementsByClassName("orbits-selected")).forEach(
+      elem => elem.classList.remove('orbits-selected')
+    )
+    document.getElementById(id).classList.add('orbits-selected')
+	});
+	document.getElementById('orbitsSelector').appendChild(newDiv)
+})
+ship.position = orbitTests[0]['position']
+ship.velocity = orbitTests[1]['velocity']
+document.getElementById('orbitTest0').classList.add('orbits-selected')
 
 
 //Create geometry and material
 var shipGeometry = new THREE.SphereGeometry(200000 * scaleFactor, 50, 50 );
 var shipMaterial = new THREE.MeshPhongMaterial({
-  color: 0xaaaaaa
+  color: 'lightgreen',
+  transparent: true,
+  opacity: .8
 });
 ship.mesh = new THREE.Mesh(shipGeometry, shipMaterial);
 ship.speedMesh = new THREE.ArrowHelper(
@@ -517,11 +535,12 @@ var render = function (actions) {
     if (n.z < .1) longAsc = 2*Math.PI - longAsc
     if (isNaN(longAsc)) longAsc = 0
     document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAsc * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-    drawVector(earth.position.scale(scaleFactor), new Vector(
-      Math.cos(longAsc),
-      0,
-      Math.sin(longAsc),
-    ).scale(15), "cyan")
+
+    // drawVector(earth.position.scale(scaleFactor), new Vector(
+    //   Math.cos(longAsc),
+    //   0,
+    //   Math.sin(longAsc),
+    // ).scale(15), "cyan")
 
     // Eccentricity vector
     // vector with direction pointing from apoapsis to periapsis and with magnitude equal to the orbit's scalar eccentricity
@@ -530,6 +549,8 @@ var render = function (actions) {
     
     // Argument of periapsis
     let argPer = Math.acos(n.dot(eccVector)/(n.module() * eccVector.module()))
+	  if (eccVector.y < .1) argPer = 2*Math.PI - argPer
+    if (isNaN(argPer)) argPer = 0
     document.getElementById('argPer').innerHTML = `Arg.per: ${(argPer * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
 
     // Velocità
@@ -540,6 +561,7 @@ var render = function (actions) {
 
     document.getElementById('vCur').innerHTML = `v: ${(v_0).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
     document.getElementById('rCur').innerHTML = `r: ${(r_0/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    document.getElementById('dCur').innerHTML = `h: ${((r_0-earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
     document.getElementById('thetaCur').innerHTML = `theta: ${(angle_0*180/Math.PI).toLocaleString(undefined, {maximumFractionDigits:1})} deg.`
     
     // Simulate orbit from parameters
@@ -567,7 +589,7 @@ var render = function (actions) {
     orbitSim.visible = true;	
     orbitSim.computeLineDistances(); 
 
-    // Rotazione (forzata) su parametri orbitali
+    // Rotazione su parametri orbitali
 
     // Reset rotation
     orbitSim.rotation.x = 0

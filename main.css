@@ -15,12 +15,12 @@ html, body {
 	top: 100px;
 	left: 20px;
 }
-#orbits{
+#orbitsSelector{
 	position: absolute;
 	background-color: black;
 	color: lightgreen;
 	top: 100px;
-	right: 100px;
+	right: 30px;
 	border: 1px solid lightgreen;
 	padding: 5px;
 }
