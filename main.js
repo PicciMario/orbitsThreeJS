@@ -76,8 +76,8 @@ function createAxisLabel(label, font, x, y, z, color){
     curveSegments: 6,
   });
 
-  let  xMaterial = new THREE.MeshBasicMaterial({ color: color });
-  let  xText = new THREE.Mesh(xGeo , xMaterial);
+  let xMaterial = new THREE.MeshBasicMaterial({ color: color });
+  let xText = new THREE.Mesh(xGeo , xMaterial);
   
   xText.position.x = x
   xText.position.y = y
@@ -85,7 +85,6 @@ function createAxisLabel(label, font, x, y, z, color){
   xText.rotation.x = camera.rotation.x;
   xText.rotation.y = camera.rotation.y;
   xText.rotation.z = camera.rotation.z;
-  scene.add(xText);  
 
   return xText
 
@@ -95,13 +94,16 @@ const loader = new THREE.FontLoader();
 var xLabel, yLabel, zLabel
 loader.load( 'fonts/helvetiker_regular.typeface.json', function(font){
   xLabel = createAxisLabel('X', font, 30, 0, 0, 'red')
+  scene.add(xLabel)
   yLabel = createAxisLabel('Y', font, 0, 30, 0, 'green')
+  scene.add(yLabel)
   zLabel = createAxisLabel('Z', font, 0, 0, 30, 'blue')
+  scene.add(zLabel)
 });
 
 // ----------------------------------------------------------------------------
 
-function resizeRendererToDisplaySizeIfNeeded(renderer) {
+function resizeRendererToDisplaySizeIfNeeded(renderer, camera) {
   
   const canvas = renderer.domElement;
   const width = canvas.clientWidth;
@@ -246,7 +248,7 @@ export function acceleration(attractors, position){
 * @param {boolean} dashed 
 * @returns 
 */
-function buildLineMesh(scene, simSize, color = 'red', dashed = false){
+function buildLineMesh(simSize, color = 'red', dashed = false){
   
   // Create mesh with fake points, because the BufferGeometry has to be
   // initialized with the right size.
@@ -274,7 +276,6 @@ function buildLineMesh(scene, simSize, color = 'red', dashed = false){
 
   const mesh = new THREE.Line( simGeometry, simMaterial );
   mesh.visible = false;
-  scene.add(mesh);
   
   return mesh;
   
@@ -396,7 +397,8 @@ ship.speedMesh = new THREE.ArrowHelper(
   "red"
 )
 
-const shipLineMesh = buildLineMesh(scene, simStepNumber, 'green');
+const shipLineMesh = buildLineMesh(simStepNumber, 'green');
+scene.add(shipLineMesh)
 
 scene.add(ship.mesh);
 scene.add(ship.speedMesh);
@@ -454,7 +456,7 @@ function drawVector(start, vector, color = "yellow"){
 
 // Simulazione orbita con parametri calcolati
 let angleSteps = 36*2;
-let orbitSim = buildLineMesh(scene, angleSteps, 'yellow', true)
+let orbitSim = buildLineMesh(angleSteps, 'yellow', true)
 scene.add(orbitSim)
 
 // ----------------------------------------------------------------------------
@@ -464,6 +466,14 @@ let lastIteration = Date.now();
 let spentTime = 0;
 let sinceLastPhysicsCalc = 0;
 
+function alignToCamera(item, camera){
+  if (item && camera){
+    item.rotation.x = camera.rotation.x;
+    item.rotation.y = camera.rotation.y;
+    item.rotation.z = camera.rotation.z;
+  }
+}
+
 var render = function (actions) {
   
   // Checking time
@@ -472,21 +482,9 @@ var render = function (actions) {
   lastIteration = Date.now();	
 
   // Allineamento etichette assi
-  if (xLabel){
-    xLabel.rotation.x = camera.rotation.x;
-    xLabel.rotation.y = camera.rotation.y;
-    xLabel.rotation.z = camera.rotation.z;
-  }
-  if (yLabel){
-    yLabel.rotation.x = camera.rotation.x;
-    yLabel.rotation.y = camera.rotation.y;
-    yLabel.rotation.z = camera.rotation.z;
-  }
-  if (zLabel){
-    zLabel.rotation.x = camera.rotation.x;
-    zLabel.rotation.y = camera.rotation.y;
-    zLabel.rotation.z = camera.rotation.z;
-  }
+  alignToCamera(xLabel, camera)
+  alignToCamera(yLabel, camera)
+  alignToCamera(zLabel, camera)
   
   // Step calcoli fisici
   if (sinceLastPhysicsCalc > phisicsCalcStep){
@@ -559,6 +557,7 @@ var render = function (actions) {
     let vPer = Math.sqrt(G * M * ((2/periapsis)-(1/sma)))
     document.getElementById('vPer').innerHTML = `PeV: ${(vPer).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
 
+    // Situazione corrente
     document.getElementById('vCur').innerHTML = `v: ${(v_0).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
     document.getElementById('rCur').innerHTML = `r: ${(r_0/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
     document.getElementById('dCur').innerHTML = `h: ${((r_0-earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
@@ -568,16 +567,14 @@ var render = function (actions) {
     for (let angleStep = 0; angleStep < angleSteps; angleStep++){
 
       let theta = (angleStep * 360 / angleSteps) * Math.PI / 180;
-        
-      let r_theta = Math.pow(v_0 * r_0 * Math.sin(angle_0), 2) / (G * M * (1 + ecc * Math.cos(theta)))
       
-      let posArray = orbitSim.geometry.getAttribute('position').array;	
-
       // Ellisse
+      let r_theta = Math.pow(v_0 * r_0 * Math.sin(angle_0), 2) / (G * M * (1 + ecc * Math.cos(theta)))
       let x = r_theta * Math.cos(theta) * scaleFactor;
       let y = 0;
       let z = r_theta * Math.sin(theta) * scaleFactor;
 
+      let posArray = orbitSim.geometry.getAttribute('position').array;
       posArray[angleStep*3] = x;
       posArray[angleStep*3+1] = y;
       posArray[angleStep*3+2] = z;
@@ -605,8 +602,7 @@ var render = function (actions) {
 
     // Apply inclination
     orbitSim.rotateOnWorldAxis(eccVector.norm().toTHREEVector3(), i)	
-    
-    
+        
     // Rotate earth
     earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * sinceLastPhysicsCalc;
     
@@ -641,7 +637,7 @@ var render = function (actions) {
     
   }
   
-  resizeRendererToDisplaySizeIfNeeded(renderer);
+  resizeRendererToDisplaySizeIfNeeded(renderer, camera);
   renderer.render(scene, camera);
   stats.update()
   requestAnimationFrame(render);
