@@ -41,6 +41,11 @@ document.body.appendChild(stats.dom)
 //Controls
 const controls = new OrbitControls(camera, canvas);
 controls.target.set(0, 0, 0);
+controls.mouseButtons = {
+	LEFT: null,
+	MIDDLE: THREE.MOUSE.PAN, //THREE.MOUSE.DOLLY
+	RIGHT: THREE.MOUSE.ROTATE,
+}
 controls.update();
 
 // Luce ambientale
@@ -473,6 +478,38 @@ function alignToCamera(item, camera){
     item.rotation.z = camera.rotation.z;
   }
 }
+
+// ----- debug prova raycaster --------------------------------------
+
+window.addEventListener('click', onDocumentMouseDown, false);
+var raycaster = new THREE.Raycaster();
+raycaster.linePrecision = 0.2;
+var mouse = new THREE.Vector2();
+function onDocumentMouseDown( event ) {
+	event.preventDefault();
+	mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
+	raycaster.setFromCamera( mouse, camera );
+	var intersects = raycaster.intersectObjects([shipLineMesh]);
+	if (intersects.length > 0){
+    console.log(intersects[0])
+		let point = intersects[0].point
+    var pointGeometry = new THREE.SphereGeometry(100000 * scaleFactor, 50, 50 );
+    var pointMaterial = new THREE.MeshPhongMaterial({
+      color: 'lightgreen',
+      transparent: true,
+      opacity: .8
+    });
+    let pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
+    pointMesh.position.x = point.x
+    pointMesh.position.y = point.y
+    pointMesh.position.z = point.z
+    scene.add(pointMesh)
+	}
+}
+
+// -----------------------------------------------------------------
+
 
 var render = function (actions) {
   
