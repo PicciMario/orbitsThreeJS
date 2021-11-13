@@ -375,7 +375,7 @@ orbitTests.forEach(({desc, position, velocity}, i) => {
 	document.getElementById('orbitsSelector').appendChild(newDiv)
 })
 ship.position = orbitTests[0]['position']
-ship.velocity = orbitTests[1]['velocity']
+ship.velocity = orbitTests[0]['velocity']
 document.getElementById('orbitTest0').classList.add('orbits-selected')
 
 
