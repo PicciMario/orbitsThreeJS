@@ -510,6 +510,35 @@ function onDocumentMouseDown( event ) {
 
 // -----------------------------------------------------------------
 
+// Maneuvers
+let maneuvers = [
+  {
+    time: new Date(new Date().getTime() + 10000),
+    deltaV: new Vector(-100, 1000, -1000)
+  },
+  {
+    time: new Date(new Date().getTime() + 20000),
+    deltaV: new Vector(0, 1000, -100)
+  }  
+]
+
+// Stampa elenco manovre
+maneuvers.forEach((maneuver, i) => maneuver['id'] = `man${i}`)
+maneuvers.forEach(({time, deltaV, id}) => {
+
+	let newDiv = document.createElement('div')
+  newDiv.id = id
+  newDiv.classList.add('maneuverToDo')
+
+  let printTime = new Date(time).toLocaleString()
+  let printDeltaV = `x: ${deltaV.x}, y: ${deltaV.y}, z: ${deltaV.z},`
+	newDiv.innerHTML = `- ${printTime} ${printDeltaV}`
+
+  document.getElementById('maneuvers').appendChild(newDiv)
+
+})
+
+// -----------------------------------------------------------------
 
 var render = function (actions) {
   
@@ -525,6 +554,20 @@ var render = function (actions) {
   
   // Step calcoli fisici
   if (sinceLastPhysicsCalc > phisicsCalcStep){
+
+    // Apply maneuvers
+    maneuvers.forEach(({time, deltaV, id}, i) => {
+      if (new Date() >= time){
+        ship.velocity = ship.velocity.add(deltaV)
+        maneuvers.splice(i, 1)
+        console.log('Applied deltaV', deltaV)
+
+        let maneuverDiv = document.getElementById(id)
+        maneuverDiv.classList.remove('maneuverToDo')
+        maneuverDiv.classList.add('maneuverDone')
+
+      }
+    })
 
     // Initial state vector
     let v_0 = ship.velocity.module()
@@ -652,20 +695,34 @@ var render = function (actions) {
     
     // Resetta tempo calcolo fisica
     sinceLastPhysicsCalc = 0;
-    
+
+    // Prepare array of future maneuvers to simulate
+    let simManeuvers = maneuvers.slice()
+    console.log(`${simManeuvers.length} manovre da simulare.`)
+
     // Refresh orbit propagation
     let shipSim = ship.clone();
+	  let shipSimTime = new Date().getTime()    
     for (let step = 0; step < simStepNumber; step++){
-      
-      let shipRes = propagate(shipSim.position, shipSim.velocity, [earth], simStepSize)
-      
-      shipSim.position = shipRes[0]
-      shipSim.velocity = shipRes[1]
       
       let posArray = shipLineMesh.geometry.getAttribute('position').array;	
       posArray[step*3] = shipSim.position.x*scaleFactor;
       posArray[step*3+1] = shipSim.position.y*scaleFactor;
       posArray[step*3+2] = shipSim.position.z*scaleFactor;
+
+      let shipRes = propagate(shipSim.position, shipSim.velocity, [earth], simStepSize)
+	    shipSimTime += simStepSize*1000
+      
+      shipSim.position = shipRes[0]
+      shipSim.velocity = shipRes[1]  
+      
+      // Apply maneuvers
+      simManeuvers.forEach(({time, deltaV}, i) => {
+        if (shipSimTime >= time){
+          shipSim.velocity = shipSim.velocity.add(deltaV)
+          simManeuvers.splice(i, 1)
+        }
+      })      
       
     }
     shipLineMesh.geometry.setDrawRange(0, simStepNumber)

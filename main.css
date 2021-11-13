@@ -39,3 +39,21 @@ html, body {
     padding: 3px;
     text-align: center;	
 }
+
+#maneuvers{
+	position: absolute;
+	background-color: black;
+	color: lightgreen;
+	bottom: 50px;
+	right: 30px;
+	border: 1px solid lightgreen;
+	padding: 5px;
+}
+
+.maneuverToDo{
+	color: green;
+}
+
+.maneuverDone{
+	color: red;
+}
