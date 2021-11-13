@@ -22,7 +22,7 @@ const simStepNumber = 10000;
 
 // Inizializzazione videocamera
 var camera = new THREE.PerspectiveCamera(30, 1, 1, 100000);
-camera.position.z = -60;
+camera.position.z = 60;
 camera.position.y = 0//80;
 camera.position.x = 0//-60;
 camera.lookAt(0,0,0)
@@ -319,12 +319,11 @@ ship.mass = 100000;
 ship.radius = 200000;
 
 // Meccanismo di selezione di casi di test
-
 let orbitTests = [
 	{
 		desc: 'Zero',
 		position: earth.calcSatellitePosition(400e3, 0, 0),
-		velocity: new Vector(-7670-2500, 1000, 0)
+		velocity: new Vector(-7670-2500, 1000, 0)//.add(new Vector(-100, 1000, -1000)).add(new Vector(0, 1000, -100))
 	},
 	{
 		desc: 'Uno',
@@ -415,7 +414,7 @@ function drawVector(start, vector, color = "yellow"){
 
 	const lineMat = new THREE.LineBasicMaterial( { color: color } );
 
-	const linePoints = [];
+	const linePoints = [];  
   linePoints.push( new THREE.Vector3( 
 		start.x,
 		start.y,
@@ -610,7 +609,7 @@ var render = function (actions) {
     // Longitude of ascending node
     let n = new Vector(0, 1, 0).cross(h)
     let longAsc = Math.acos(n.x / n.module())
-    if (n.z < .1) longAsc = 2*Math.PI - longAsc
+    if (n.z < 0) longAsc = 2*Math.PI - longAsc
     if (isNaN(longAsc)) longAsc = 0
     document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAsc * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
 
@@ -627,7 +626,7 @@ var render = function (actions) {
     
     // Argument of periapsis
     let argPer = Math.acos(n.dot(eccVector)/(n.module() * eccVector.module()))
-	  if (eccVector.y < .1) argPer = 2*Math.PI - argPer
+	  if (eccVector.y < 0) argPer = 2*Math.PI - argPer
     if (isNaN(argPer)) argPer = 0
     document.getElementById('argPer').innerHTML = `Arg.per: ${(argPer * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
 
@@ -698,7 +697,6 @@ var render = function (actions) {
 
     // Prepare array of future maneuvers to simulate
     let simManeuvers = maneuvers.slice()
-    console.log(`${simManeuvers.length} manovre da simulare.`)
 
     // Refresh orbit propagation
     let shipSim = ship.clone();
