@@ -1,0 +1,102 @@
+import Vector from './vector.js'
+
+// Universal gravitation constant [m^3 / (kg * s^2)]
+export const G = 6.67e-11;
+
+/**
+ * Calculater orbital parameters of orbiting body.
+ * @param {Body} orbitingBody 
+ * @param {Body} centreBody 
+ * @returns 
+ */
+export function orbitalCalcBody(orbitingBody, centreBody){
+  return orbitalCalc(
+    orbitingBody.velocity,
+    orbitingBody.position,
+    centreBody.position,
+    centreBody.mass
+  )
+}
+
+/**
+ * Calculates orbital parameters from current state vector.
+ * @param {Vector} velocity 
+ * @param {Vector} position 
+ * @param {Vector} attractorPosition 
+ * @param {number} attractorMass 
+ * @returns 
+ */
+export function orbitalCalc(velocity, position, attractorPosition, attractorMass){
+
+  // Constants
+  let M = attractorMass
+
+  // Initial state vector
+  let relPosition = position.diff(attractorPosition)
+  let v_0 = velocity.module()
+  let r_0 = relPosition.module()
+  let angle_0 = relPosition.angle(velocity)
+
+  // Specific energy (Earth orbit)
+  let specificEnergy = Math.pow(v_0, 2) / 2.0 - G * M / r_0
+
+  // Semimajor axis
+  let semiMajorAxis = - G * M / (2 * specificEnergy)
+
+  // Orbit eccentricity
+  let eccentricity = Math.sqrt(1+(
+    (2 * Math.pow(v_0, 2) * Math.pow(r_0, 2) * Math.pow(Math.sin(angle_0), 2) * specificEnergy)
+    /(Math.pow(G, 2) * Math.pow(M, 2))
+  ))
+
+  // Orbit shape
+  let rApoapsis = (semiMajorAxis * (1 + eccentricity))
+  let rPeriapsis = (semiMajorAxis * (1 - eccentricity))
+
+  // Orbital period
+  let period = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / (G * M))
+
+  // Inclination
+  let h = relPosition.cross(velocity) // specific angular (orbital) moment vector
+  let inclination = Math.acos(h.y / h.module())
+
+  // Longitude of ascending node
+  let n = new Vector(0, 1, 0).cross(h)
+  let longAscNode = Math.acos(n.x / n.module())
+  if (n.z < 0) longAscNode = 2*Math.PI - longAscNode
+  if (isNaN(longAscNode)) longAscNode = 0
+
+  // Eccentricity vector
+  let eccVector = velocity
+    .cross(h)
+    .scale(1/(G*M))
+    .diff(relPosition.scale(1/relPosition.module()))
+  
+  // Argument of periapsis
+  let argPeriapsis = Math.acos(n.dot(eccVector)/(n.module() * eccVector.module()))
+  if (eccVector.y < 0) argPeriapsis = 2*Math.PI - argPeriapsis
+  if (isNaN(argPeriapsis)) argPeriapsis = 0
+
+  // Velocità
+  let vApoapsis = Math.sqrt(G * M * ((2/rApoapsis)-(1/semiMajorAxis)))
+  let vPeriapsis = Math.sqrt(G * M * ((2/rPeriapsis)-(1/semiMajorAxis)))
+
+  return({
+    v_0,
+    r_0,
+    angle_0,
+    specificEnergy,
+    eccentricity,
+    semiMajorAxis,
+    rApoapsis,
+    rPeriapsis,
+    period,
+    inclination,
+    argPeriapsis,
+    longAscNode,
+    vApoapsis,
+    vPeriapsis,
+    eccVector
+  })
+
+}

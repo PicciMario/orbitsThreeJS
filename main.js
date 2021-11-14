@@ -4,6 +4,7 @@ import Stats from './examples/jsm/libs/stats.module.js'
 import { GUI } from './examples/jsm/libs/dat.gui.module.js'
 import Body from './scripts/body.js'
 import Vector from './scripts/vector.js'
+import {orbitalCalcBody} from './scripts/orbit-calc.js'
 
 // --- Costanti ---------------------------------------------------------------
 
@@ -539,6 +540,38 @@ maneuvers.forEach(({time, deltaV, id}) => {
 
 // -----------------------------------------------------------------
 
+// Refresh orbital parameters div
+// function refreshOrbitalParamsUI(calcOrbit, earth){
+
+//   orbitalParamsListUI = [
+//     {div: 'specificEnergyDiv', label: 'Spec. Energy', val: calcOrbit.specificEnergy, type: 'fraction', digits: 2},
+//     {div: 'semimajAxisDiv', label: 'Sma', val: calcOrbit.semiMajorAxis/1000, type: 'fraction', digits: 2},
+//     {div: 'eccDiv', label: 'Ecc', val: calcOrbit.eccentricity, type: 'fixed', digits: 2},
+//     {div: 'apoDiv', label: 'ApD', val: (calcOrbit.rApoapsis - earth.radius)/1000, type: 'fixed', digits: 0},
+//     {div: 'perDiv', label: 'PeD', val: (calcOrbit.rPeriapsis - earth.radius)/1000, type: 'fixed', digits: 0},
+//     {div: 'periodoDiv', label: 'T', val: calcOrbit.period/3600, type: 'fixed', digits: 0},
+//   ]
+
+//   document.getElementById('specificEnergyDiv').innerHTML = `Spec. Energy: ${(specificEnergy/1000).toLocaleString(undefined, {maximumFractionDigits:2})} KJ/Kg`
+//   document.getElementById('semimajAxisDiv').innerHTML = `Sma: ${(semiMajorAxis/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+//   document.getElementById('eccDiv').innerHTML = `Ecc: ${(eccentricity).toFixed(4)}`
+//   document.getElementById('eccDiv').innerHTML = `Ecc: ${(eccentricity).toFixed(4)}`
+//   document.getElementById('apoDiv').innerHTML = `ApD: ${((rApoapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+//   document.getElementById('perDiv').innerHTML = `PeD: ${((rPeriapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+//   document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
+//   document.getElementById('incl').innerHTML = `Incl: ${(inclination * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
+//   document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAscNode * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
+//   document.getElementById('argPer').innerHTML = `Arg.per: ${(argPeriapsis * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
+//   document.getElementById('vApo').innerHTML = `ApV: ${(vApoapsis).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+//   document.getElementById('vPer').innerHTML = `PeV: ${(vPeriapsis).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+//   document.getElementById('vCur').innerHTML = `v: ${(ship.velocity.module()).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+//   document.getElementById('rCur').innerHTML = `r: ${((ship.position.diff(earth.position).module())/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+//   document.getElementById('dCur').innerHTML = `h: ${((ship.position.diff(earth.position).module()-earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+//   document.getElementById('thetaCur').innerHTML = `theta: ${(angle_0*180/Math.PI).toLocaleString(undefined, {maximumFractionDigits:1})} deg.`  
+// }
+
+// -----------------------------------------------------------------
+
 var render = function (actions) {
   
   // Checking time
@@ -568,78 +601,38 @@ var render = function (actions) {
       }
     })
 
-    // Initial state vector
-    let v_0 = ship.velocity.module()
-    let r_0 = ship.position.diff(earth.position).module()
-    let angle_0 = ship.position.diff(earth.position).angle(ship.velocity)
+    let calcOrbit = orbitalCalcBody(ship, earth)
+    let v_0 = calcOrbit.v_0
+    let r_0 = calcOrbit.r_0
+    let angle_0 = calcOrbit.angle_0
+    let specificEnergy = calcOrbit.specificEnergy
+    let eccentricity = calcOrbit.eccentricity
+    let semiMajorAxis = calcOrbit.semiMajorAxis
+    let rApoapsis = calcOrbit.rApoapsis
+    let rPeriapsis = calcOrbit.rPeriapsis
+    let period = calcOrbit.period
+    let inclination = calcOrbit.inclination
+    let argPeriapsis = calcOrbit.argPeriapsis
+    let longAscNode = calcOrbit.longAscNode
+    let vApoapsis = calcOrbit.vApoapsis
+    let vPeriapsis = calcOrbit.vPeriapsis
+    let eccVector = calcOrbit.eccVector  
 
-    let M = earth.mass
-
-    // Specific energy (Earth orbit)
-    let specificEnergy = Math.pow(v_0, 2) / 2.0 - G * M / r_0
     document.getElementById('specificEnergyDiv').innerHTML = `Spec. Energy: ${(specificEnergy/1000).toLocaleString(undefined, {maximumFractionDigits:2})} KJ/Kg`
-
-    // Semimajor axis
-    let sma = - G * M / (2 * specificEnergy)
-    document.getElementById('semimajAxisDiv').innerHTML = `Sma: ${(sma/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-
-    // Orbit eccentricity
-    let ecc = Math.sqrt(1+(
-      (2 * Math.pow(v_0, 2) * Math.pow(r_0, 2) * Math.pow(Math.sin(angle_0), 2) * specificEnergy)
-      /(Math.pow(G, 2) * Math.pow(M, 2))
-    ))
-    document.getElementById('eccDiv').innerHTML = `Ecc: ${(ecc).toFixed(4)}`
-
-    // Orbit shape
-    let apoapsis = (sma * (1 + ecc))
-    let periapsis = (sma * (1 - ecc))
-    document.getElementById('apoDiv').innerHTML = `ApD: ${((apoapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-    document.getElementById('perDiv').innerHTML = `PeD: ${((periapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-
-    // Orbital period
-    let period = 2 * Math.PI * Math.sqrt(Math.pow(sma, 3) / (G * M))
+    document.getElementById('semimajAxisDiv').innerHTML = `Sma: ${(semiMajorAxis/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    document.getElementById('eccDiv').innerHTML = `Ecc: ${(eccentricity).toFixed(4)}`
+    document.getElementById('eccDiv').innerHTML = `Ecc: ${(eccentricity).toFixed(4)}`
+    document.getElementById('apoDiv').innerHTML = `ApD: ${((rApoapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    document.getElementById('perDiv').innerHTML = `PeD: ${((rPeriapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
     document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
-
-    // Inclination
-    // ship position cross velocity is a vector perpendicular to the orbital plane!
-    let h = ship.position.diff(earth.position).cross(ship.velocity) // specific angular (orbital) moment vector
-    let i = Math.acos(h.y / h.module())
-    document.getElementById('incl').innerHTML = `Incl: ${(i * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-
-    // Longitude of ascending node
-    let n = new Vector(0, 1, 0).cross(h)
-    let longAsc = Math.acos(n.x / n.module())
-    if (n.z < 0) longAsc = 2*Math.PI - longAsc
-    if (isNaN(longAsc)) longAsc = 0
-    document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAsc * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-
-    // drawVector(earth.position.scale(scaleFactor), new Vector(
-    //   Math.cos(longAsc),
-    //   0,
-    //   Math.sin(longAsc),
-    // ).scale(15), "cyan")
-
-    // Eccentricity vector
-    // vector with direction pointing from apoapsis to periapsis and with magnitude equal to the orbit's scalar eccentricity
-    let r = ship.position.diff(earth.position) // position vector
-    let eccVector = ship.velocity.cross(h).scale(1/(G*M)).diff(r.scale(1/r.module()))
-    
-    // Argument of periapsis
-    let argPer = Math.acos(n.dot(eccVector)/(n.module() * eccVector.module()))
-	  if (eccVector.y < 0) argPer = 2*Math.PI - argPer
-    if (isNaN(argPer)) argPer = 0
-    document.getElementById('argPer').innerHTML = `Arg.per: ${(argPer * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-
-    // Velocità
-    let vApo = Math.sqrt(G * M * ((2/apoapsis)-(1/sma)))
-    document.getElementById('vApo').innerHTML = `ApV: ${(vApo).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-    let vPer = Math.sqrt(G * M * ((2/periapsis)-(1/sma)))
-    document.getElementById('vPer').innerHTML = `PeV: ${(vPer).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-
-    // Situazione corrente
-    document.getElementById('vCur').innerHTML = `v: ${(v_0).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-    document.getElementById('rCur').innerHTML = `r: ${(r_0/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-    document.getElementById('dCur').innerHTML = `h: ${((r_0-earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    document.getElementById('incl').innerHTML = `Incl: ${(inclination * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
+    document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAscNode * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
+    document.getElementById('argPer').innerHTML = `Arg.per: ${(argPeriapsis * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
+    document.getElementById('vApo').innerHTML = `ApV: ${(vApoapsis).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+    document.getElementById('vPer').innerHTML = `PeV: ${(vPeriapsis).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+    document.getElementById('vCur').innerHTML = `v: ${(ship.velocity.module()).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
+    document.getElementById('rCur').innerHTML = `r: ${((ship.position.diff(earth.position).module())/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
+    document.getElementById('dCur').innerHTML = `h: ${((ship.position.diff(earth.position).module()-earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
     document.getElementById('thetaCur').innerHTML = `theta: ${(angle_0*180/Math.PI).toLocaleString(undefined, {maximumFractionDigits:1})} deg.`
     
     // Simulate orbit from parameters
@@ -648,7 +641,7 @@ var render = function (actions) {
       let theta = (angleStep * 360 / angleSteps) * Math.PI / 180;
       
       // Ellisse
-      let r_theta = Math.pow(v_0 * r_0 * Math.sin(angle_0), 2) / (G * M * (1 + ecc * Math.cos(theta)))
+      let r_theta = Math.pow(v_0 * r_0 * Math.sin(angle_0), 2) / (G * earth.mass * (1 + eccentricity * Math.cos(theta)))
       let x = r_theta * Math.cos(theta) * scaleFactor;
       let y = 0;
       let z = r_theta * Math.sin(theta) * scaleFactor;
@@ -673,14 +666,14 @@ var render = function (actions) {
     orbitSim.rotation.z = 0
 
     // Apply longitude of ascending node
-    orbitSim.rotateOnAxis(new THREE.Vector3(0,1,0).normalize(), -longAsc)
+    orbitSim.rotateOnAxis(new THREE.Vector3(0,1,0).normalize(), -longAscNode)
 
     // Apply argument of periapsis
     let eccVectorPerp = ship.position.diff(earth.position).cross(ship.velocity).norm()
-    orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), argPer)
+    orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), argPeriapsis)
 
     // Apply inclination
-    orbitSim.rotateOnWorldAxis(eccVector.norm().toTHREEVector3(), i)	
+    orbitSim.rotateOnWorldAxis(eccVector.norm().toTHREEVector3(), inclination)	
         
     // Rotate earth
     earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * sinceLastPhysicsCalc;
