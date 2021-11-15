@@ -5,6 +5,8 @@ import { GUI } from './examples/jsm/libs/dat.gui.module.js'
 import Body from './scripts/body.js'
 import Vector from './scripts/vector.js'
 import {orbitalCalcBody} from './scripts/orbit-calc.js'
+import {orbitDraw} from './scripts/orbit-draw.js'
+import {G} from './scripts/constants.js'
 
 // --- Costanti ---------------------------------------------------------------
 
@@ -12,8 +14,6 @@ import {orbitalCalcBody} from './scripts/orbit-calc.js'
 const scaleFactor = 10 / 6371000;
 // Durata step calcoli fisici [ms]
 const phisicsCalcStep = 300
-// Universal gravitation constant [m^3 / (kg * s^2)]
-export const G = 6.67e-11;
 // Durata step simulazione propagazione [s]
 const simStepSize = 100;
 // Numero step simulazione propagazione
@@ -541,34 +541,31 @@ maneuvers.forEach(({time, deltaV, id}) => {
 // -----------------------------------------------------------------
 
 // Refresh orbital parameters div
-// function refreshOrbitalParamsUI(calcOrbit, earth){
+function refreshOrbitalParamsUI(calcOrbit){
 
-//   orbitalParamsListUI = [
-//     {div: 'specificEnergyDiv', label: 'Spec. Energy', val: calcOrbit.specificEnergy, type: 'fraction', digits: 2},
-//     {div: 'semimajAxisDiv', label: 'Sma', val: calcOrbit.semiMajorAxis/1000, type: 'fraction', digits: 2},
-//     {div: 'eccDiv', label: 'Ecc', val: calcOrbit.eccentricity, type: 'fixed', digits: 2},
-//     {div: 'apoDiv', label: 'ApD', val: (calcOrbit.rApoapsis - earth.radius)/1000, type: 'fixed', digits: 0},
-//     {div: 'perDiv', label: 'PeD', val: (calcOrbit.rPeriapsis - earth.radius)/1000, type: 'fixed', digits: 0},
-//     {div: 'periodoDiv', label: 'T', val: calcOrbit.period/3600, type: 'fixed', digits: 0},
-//   ]
+  let orbitalParamsListUI = [
+    {div: 'specificEnergyDiv', 	label: 'Spec. Energy', 	unit: 'KJ/Kg', 	val: calcOrbit.specificEnergy/1000},
+    {div: 'semimajAxisDiv', 	  label: 'Sma', 			    unit: 'km', 	  val: calcOrbit.semiMajorAxis/1000},
+    {div: 'eccDiv', 			      label: 'Ecc', 			    unit: '', 		  val: calcOrbit.eccentricity},
+    {div: 'apoDiv', 			      label: 'ApD', 			    unit: 'km', 	  val: (calcOrbit.rApoapsis - calcOrbit.centreBody.radius)/1000},
+    {div: 'perDiv', 			      label: 'PeD', 			    unit: 'km', 	  val: (calcOrbit.rPeriapsis - calcOrbit.centreBody.radius)/1000},
+    {div: 'periodoDiv', 	      label: 'T', 			      unit: 'h', 		  val: calcOrbit.period/36000},
+    {div: 'incl', 				      label: 'Incl:', 		    unit: 'deg', 	  val: calcOrbit.inclination * 180 / Math.PI},
+    {div: 'longAsc', 			      label: 'LonAsc',	 	    unit: 'deg', 	  val: calcOrbit.longAscNode * 180 / Math.PI},
+    {div: 'argPer', 			      label: 'Arg.per', 		  unit: 'deg', 	  val: calcOrbit.argPeriapsis * 180 / Math.PI},
+    {div: 'vApo', 				      label: 'ApV', 			    unit: 'm/s', 	  val: calcOrbit.vApoapsis},
+    {div: 'vPer', 				      label: 'PeV', 			    unit: 'm/s', 	  val: calcOrbit.vPeriapsis},
+    {div: 'vCur', 				      label: 'v', 			      unit: 'm/s', 	  val: calcOrbit.orbitingBody.velocity.module()},
+    {div: 'rCur', 				      label: 'r', 			      unit: 'km', 	  val: calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() / 1000},
+    {div: 'dCur', 				      label: 'h', 			      unit: 'km', 	  val: (calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() - calcOrbit.centreBody.radius) / 1000},
+    {div: 'thetaCur', 			    label: 'theta', 	    	unit: 'deg.', 	val: calcOrbit.angle_0*180/Math.PI},
+  ]
 
-//   document.getElementById('specificEnergyDiv').innerHTML = `Spec. Energy: ${(specificEnergy/1000).toLocaleString(undefined, {maximumFractionDigits:2})} KJ/Kg`
-//   document.getElementById('semimajAxisDiv').innerHTML = `Sma: ${(semiMajorAxis/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-//   document.getElementById('eccDiv').innerHTML = `Ecc: ${(eccentricity).toFixed(4)}`
-//   document.getElementById('eccDiv').innerHTML = `Ecc: ${(eccentricity).toFixed(4)}`
-//   document.getElementById('apoDiv').innerHTML = `ApD: ${((rApoapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-//   document.getElementById('perDiv').innerHTML = `PeD: ${((rPeriapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-//   document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
-//   document.getElementById('incl').innerHTML = `Incl: ${(inclination * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-//   document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAscNode * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-//   document.getElementById('argPer').innerHTML = `Arg.per: ${(argPeriapsis * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-//   document.getElementById('vApo').innerHTML = `ApV: ${(vApoapsis).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-//   document.getElementById('vPer').innerHTML = `PeV: ${(vPeriapsis).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-//   document.getElementById('vCur').innerHTML = `v: ${(ship.velocity.module()).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-//   document.getElementById('rCur').innerHTML = `r: ${((ship.position.diff(earth.position).module())/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-//   document.getElementById('dCur').innerHTML = `h: ${((ship.position.diff(earth.position).module()-earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-//   document.getElementById('thetaCur').innerHTML = `theta: ${(angle_0*180/Math.PI).toLocaleString(undefined, {maximumFractionDigits:1})} deg.`  
-// }
+  orbitalParamsListUI.forEach(({div, label, unit, val}) => {
+	  document.getElementById(div).innerHTML = `${label}: ${val.toLocaleString(undefined, {maximumFractionDigits:2})} ${unit}`
+  })
+
+}
 
 // -----------------------------------------------------------------
 
@@ -601,79 +598,12 @@ var render = function (actions) {
       }
     })
 
+    // Calcola e disegna orbita simulata
     let calcOrbit = orbitalCalcBody(ship, earth)
-    let v_0 = calcOrbit.v_0
-    let r_0 = calcOrbit.r_0
-    let angle_0 = calcOrbit.angle_0
-    let specificEnergy = calcOrbit.specificEnergy
-    let eccentricity = calcOrbit.eccentricity
-    let semiMajorAxis = calcOrbit.semiMajorAxis
-    let rApoapsis = calcOrbit.rApoapsis
-    let rPeriapsis = calcOrbit.rPeriapsis
-    let period = calcOrbit.period
-    let inclination = calcOrbit.inclination
-    let argPeriapsis = calcOrbit.argPeriapsis
-    let longAscNode = calcOrbit.longAscNode
-    let vApoapsis = calcOrbit.vApoapsis
-    let vPeriapsis = calcOrbit.vPeriapsis
-    let eccVector = calcOrbit.eccVector  
+    orbitDraw(calcOrbit, orbitSim, angleSteps, scaleFactor)
 
-    document.getElementById('specificEnergyDiv').innerHTML = `Spec. Energy: ${(specificEnergy/1000).toLocaleString(undefined, {maximumFractionDigits:2})} KJ/Kg`
-    document.getElementById('semimajAxisDiv').innerHTML = `Sma: ${(semiMajorAxis/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-    document.getElementById('eccDiv').innerHTML = `Ecc: ${(eccentricity).toFixed(4)}`
-    document.getElementById('eccDiv').innerHTML = `Ecc: ${(eccentricity).toFixed(4)}`
-    document.getElementById('apoDiv').innerHTML = `ApD: ${((rApoapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-    document.getElementById('perDiv').innerHTML = `PeD: ${((rPeriapsis - earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-    document.getElementById('periodoDiv').innerHTML = `T: ${(period/3600).toLocaleString(undefined, {maximumFractionDigits:2})} h`
-    document.getElementById('incl').innerHTML = `Incl: ${(inclination * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-    document.getElementById('longAsc').innerHTML = `LonAsc: ${(longAscNode * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-    document.getElementById('argPer').innerHTML = `Arg.per: ${(argPeriapsis * 180 / Math.PI).toLocaleString(undefined, {maximumFractionDigits:2})} deg.`
-    document.getElementById('vApo').innerHTML = `ApV: ${(vApoapsis).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-    document.getElementById('vPer').innerHTML = `PeV: ${(vPeriapsis).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-    document.getElementById('vCur').innerHTML = `v: ${(ship.velocity.module()).toLocaleString(undefined, {maximumFractionDigits:0})} m/s`
-    document.getElementById('rCur').innerHTML = `r: ${((ship.position.diff(earth.position).module())/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-    document.getElementById('dCur').innerHTML = `h: ${((ship.position.diff(earth.position).module()-earth.radius)/1000).toLocaleString(undefined, {maximumFractionDigits:0})} km`
-    document.getElementById('thetaCur').innerHTML = `theta: ${(angle_0*180/Math.PI).toLocaleString(undefined, {maximumFractionDigits:1})} deg.`
-    
-    // Simulate orbit from parameters
-    for (let angleStep = 0; angleStep < angleSteps; angleStep++){
-
-      let theta = (angleStep * 360 / angleSteps) * Math.PI / 180;
-      
-      // Ellisse
-      let r_theta = Math.pow(v_0 * r_0 * Math.sin(angle_0), 2) / (G * earth.mass * (1 + eccentricity * Math.cos(theta)))
-      let x = r_theta * Math.cos(theta) * scaleFactor;
-      let y = 0;
-      let z = r_theta * Math.sin(theta) * scaleFactor;
-
-      let posArray = orbitSim.geometry.getAttribute('position').array;
-      posArray[angleStep*3] = x;
-      posArray[angleStep*3+1] = y;
-      posArray[angleStep*3+2] = z;
-      
-    }
-
-    orbitSim.geometry.setDrawRange(0, angleSteps)
-    orbitSim.geometry.attributes.position.needsUpdate = true;		
-    orbitSim.visible = true;	
-    orbitSim.computeLineDistances(); 
-
-    // Rotazione su parametri orbitali
-
-    // Reset rotation
-    orbitSim.rotation.x = 0
-    orbitSim.rotation.y = 0
-    orbitSim.rotation.z = 0
-
-    // Apply longitude of ascending node
-    orbitSim.rotateOnAxis(new THREE.Vector3(0,1,0).normalize(), -longAscNode)
-
-    // Apply argument of periapsis
-    let eccVectorPerp = ship.position.diff(earth.position).cross(ship.velocity).norm()
-    orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), argPeriapsis)
-
-    // Apply inclination
-    orbitSim.rotateOnWorldAxis(eccVector.norm().toTHREEVector3(), inclination)	
+    // Aggiorna parametri orbita simulata e stato corrente su UI
+    refreshOrbitalParamsUI(calcOrbit)
         
     // Rotate earth
     earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * sinceLastPhysicsCalc;

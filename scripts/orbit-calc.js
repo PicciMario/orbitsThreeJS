@@ -1,7 +1,5 @@
 import Vector from './vector.js'
-
-// Universal gravitation constant [m^3 / (kg * s^2)]
-export const G = 6.67e-11;
+import {G} from './constants.js'
 
 /**
  * Calculater orbital parameters of orbiting body.
@@ -10,26 +8,13 @@ export const G = 6.67e-11;
  * @returns 
  */
 export function orbitalCalcBody(orbitingBody, centreBody){
-  return orbitalCalc(
-    orbitingBody.velocity,
-    orbitingBody.position,
-    centreBody.position,
-    centreBody.mass
-  )
-}
 
-/**
- * Calculates orbital parameters from current state vector.
- * @param {Vector} velocity 
- * @param {Vector} position 
- * @param {Vector} attractorPosition 
- * @param {number} attractorMass 
- * @returns 
- */
-export function orbitalCalc(velocity, position, attractorPosition, attractorMass){
+  let velocity = orbitingBody.velocity
+  let position = orbitingBody.position
+  let attractorPosition = centreBody.position
 
   // Constants
-  let M = attractorMass
+  let M = centreBody.mass
 
   // Initial state vector
   let relPosition = position.diff(attractorPosition)
@@ -82,9 +67,11 @@ export function orbitalCalc(velocity, position, attractorPosition, attractorMass
   let vPeriapsis = Math.sqrt(G * M * ((2/rPeriapsis)-(1/semiMajorAxis)))
 
   return({
+    
     v_0,
     r_0,
     angle_0,
+
     specificEnergy,
     eccentricity,
     semiMajorAxis,
@@ -96,7 +83,11 @@ export function orbitalCalc(velocity, position, attractorPosition, attractorMass
     longAscNode,
     vApoapsis,
     vPeriapsis,
-    eccVector
+    eccVector,
+
+    orbitingBody, 
+    centreBody    
+
   })
 
 }
