@@ -313,6 +313,36 @@ earth.mesh = new THREE.Mesh(earthGeometry, earthMaterial);
 scene.add(earth.mesh);
 setMeshPosition(earth);
 
+// --- Moon -------------------------------------------------------------------
+
+var moon = new Body('Moon');
+moon.mass = 7.3477e22;
+moon.radius = 1737.1e3;
+moon.SOIRadius = 0.0661e9;
+
+let orbitRadius = 3.844e8
+let orbitAngle = 0
+let orbitX = orbitRadius * Math.cos(orbitAngle)
+let orbitZ = orbitRadius * Math.sin(orbitAngle)
+moon.position = earth.position.add(new Vector(orbitX, 0, orbitZ));
+
+let orbitVelocity = 1027.77	
+moon.velocity = new Vector(0, 0, orbitVelocity);
+
+//Create geometry and material
+var moonGeometry = new THREE.SphereGeometry(
+	moon.radius * scaleFactor, 
+	50, 
+	50
+);
+var moonMaterial = new THREE.MeshPhongMaterial({
+color: 0xaaaaaa
+});
+moon.mesh = new THREE.Mesh(moonGeometry, moonMaterial);
+
+scene.add(moon.mesh);
+setMeshPosition(moon);
+
 // --- Ship -------------------------------------------------------------------
 
 var ship = new Body('Ship');
@@ -409,6 +439,9 @@ scene.add(ship.mesh);
 scene.add(ship.speedMesh);
 setMeshPosition(ship);
 
+const moonLineMesh = buildLineMesh(simStepNumber, 'green');
+scene.add(moonLineMesh)
+
 // ----------------------------------------------------------------------------
 
 function drawVector(start, vector, color = "yellow"){
@@ -463,6 +496,9 @@ function drawVector(start, vector, color = "yellow"){
 let angleSteps = 36*2;
 let orbitSim = buildLineMesh(angleSteps, 'yellow', true)
 scene.add(orbitSim)
+
+let moonOrbitSim = buildLineMesh(angleSteps, 'yellow', true)
+scene.add(moonOrbitSim)
 
 // ----------------------------------------------------------------------------
 
@@ -569,6 +605,10 @@ function refreshOrbitalParamsUI(calcOrbit){
 
 // -----------------------------------------------------------------
 
+// Calcola e disegna orbita simulata Luna
+let calcOrbitMoon = orbitalCalcBody(moon, earth)
+orbitDraw(calcOrbitMoon, moonOrbitSim, angleSteps, scaleFactor)  
+
 var render = function (actions) {
   
   // Checking time
@@ -614,6 +654,11 @@ var render = function (actions) {
     ship.position = shipRes[0]
     ship.velocity = shipRes[1]
     setMeshPosition(ship);
+
+    let moonRes = propagate(moon.position, moon.velocity, [earth], sinceLastPhysicsCalc / 1000 * simSpeed)
+    moon.position = moonRes[0]
+    moon.velocity = moonRes[1]
+    setMeshPosition(moon);	
     
     // Resetta tempo calcolo fisica
     sinceLastPhysicsCalc = 0;
@@ -649,8 +694,34 @@ var render = function (actions) {
     shipLineMesh.geometry.setDrawRange(0, simStepNumber)
     shipLineMesh.geometry.attributes.position.needsUpdate = true;		
     shipLineMesh.visible = true;	
+
+
+    // Refresh MOON orbit propagation
+    let moonSim = moon.clone();
+	  let moonSimTime = new Date().getTime()    
+    for (let step = 0; step < simStepNumber; step++){
+      
+      let posArray = moonLineMesh.geometry.getAttribute('position').array;	
+      posArray[step*3] = moonSim.position.x*scaleFactor;
+      posArray[step*3+1] = moonSim.position.y*scaleFactor;
+      posArray[step*3+2] = moonSim.position.z*scaleFactor;
+
+      let moonRes = propagate(moonSim.position, moonSim.velocity, [earth], simStepSize)
+	    moonSimTime += simStepSize*1000
+      
+      moonSim.position = moonRes[0]
+      moonSim.velocity = moonRes[1]  
+      
+    }
+
+    moonLineMesh.geometry.setDrawRange(0, simStepNumber)
+    moonLineMesh.geometry.attributes.position.needsUpdate = true;		
+    moonLineMesh.visible = true;
     
   }
+
+
+  
   
   resizeRendererToDisplaySizeIfNeeded(renderer, camera);
   renderer.render(scene, camera);
