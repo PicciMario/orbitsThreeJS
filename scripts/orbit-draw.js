@@ -1,16 +1,13 @@
 import * as THREE from '../build/three.module.js'
-import {G} from './constants.js'
 
 export function orbitDraw(calcOrbit, orbitSim, angleSteps, scaleFactor){
 
-  let v_0 = calcOrbit.v_0
-  let r_0 = calcOrbit.r_0
-  let angle_0 = calcOrbit.angle_0
   let eccentricity = calcOrbit.eccentricity
+  let semiMajorAxis = calcOrbit.semiMajorAxis
   let inclination = calcOrbit.inclination
   let argPeriapsis = calcOrbit.argPeriapsis
   let longAscNode = calcOrbit.longAscNode
-  let eccVector = calcOrbit.eccVector  
+  let eccVector = calcOrbit.eccVector 
 
   // Simulate orbit from parameters
   for (let angleStep = 0; angleStep < angleSteps; angleStep++){
@@ -18,7 +15,7 @@ export function orbitDraw(calcOrbit, orbitSim, angleSteps, scaleFactor){
     let theta = (angleStep * 360 / angleSteps) * Math.PI / 180;
     
     // Ellisse
-    let r_theta = Math.pow(v_0 * r_0 * Math.sin(angle_0), 2) / (G * calcOrbit.centreBody.mass * (1 + eccentricity * Math.cos(theta)))
+    let r_theta = semiMajorAxis * (1 - Math.pow(eccentricity,2)) / (1 + eccentricity * Math.cos(theta))
     let x = r_theta * Math.cos(theta) * scaleFactor;
     let y = 0;
     let z = r_theta * Math.sin(theta) * scaleFactor;
