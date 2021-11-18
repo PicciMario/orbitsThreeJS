@@ -1,4 +1,4 @@
-import {G} from './constants.js'
+import {G, scaleFactor} from './constants.js'
 import Vector from './vector.js'
 
 /**
@@ -82,5 +82,54 @@ export function acceleration(attractors, position){
     return distVector.norm().minus().scale(G * attr.mass / Math.pow(distVector.module(), 2));
   })
   .reduce((prev, curr) => prev.add(curr), new Vector())	
+
+}
+
+
+export function buildTrajectory(ship, attractors, simStepNumber, simStepSize, maneuvers){
+
+  // Prepare array of future maneuvers to simulate
+  let simManeuvers = maneuvers.slice()
+
+  // Refresh orbit propagation
+  let shipSim = ship.clone();
+  let shipSimTime = new Date().getTime();
+  let shipStepNumber = 0;
+  for (let step = 0; step < simStepNumber; step++){
+
+    shipStepNumber++;
+    
+    let posArray = ship.lineMesh.geometry.getAttribute('position').array;	
+    posArray[step*3] = shipSim.position.x*scaleFactor;
+    posArray[step*3+1] = shipSim.position.y*scaleFactor;
+    posArray[step*3+2] = shipSim.position.z*scaleFactor;
+
+    // Verifica collisioni
+    let collision = false
+    attractors.forEach(attr => {
+      if (shipSim.position.diff(attr.position).module() < attr.radius){
+        collision = true;
+      }    
+    })  
+    if (collision) break;
+
+    let shipRes = propagate(shipSim.position, shipSim.velocity, attractors, simStepSize)
+    shipSimTime += simStepSize*1000
+    
+    shipSim.position = shipRes[0]
+    shipSim.velocity = shipRes[1]  
+    
+    // Apply maneuvers
+    simManeuvers.forEach(({time, deltaV}, i) => {
+      if (shipSimTime >= time){
+        shipSim.velocity = shipSim.velocity.add(deltaV)
+        simManeuvers.splice(i, 1)
+      }
+    })      
+    
+  }
+  ship.lineMesh.geometry.setDrawRange(0, shipStepNumber)
+  ship.lineMesh.geometry.attributes.position.needsUpdate = true;		
+  ship.lineMesh.visible = true;	
 
 }

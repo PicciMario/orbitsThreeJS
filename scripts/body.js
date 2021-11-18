@@ -20,6 +20,7 @@ export default class Body{
     
     this.mesh = null;
 	  this.speedMesh = null;
+    this.lineMesh = null;
 
   }
   

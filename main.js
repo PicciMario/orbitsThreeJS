@@ -6,13 +6,11 @@ import Body from './scripts/body.js'
 import Vector from './scripts/vector.js'
 import {orbitalCalcBody} from './scripts/orbit-calc.js'
 import {orbitDraw} from './scripts/orbit-draw.js'
-import {propagate} from './scripts/propagation-calc.js'
-import {G} from './scripts/constants.js'
+import {propagate, buildTrajectory} from './scripts/propagation-calc.js'
+import {G, scaleFactor} from './scripts/constants.js'
 
 // --- Costanti ---------------------------------------------------------------
 
-// Fattore di scala per disegno oggetti.
-const scaleFactor = 10 / 6371000;
 // Durata step calcoli fisici [ms]
 const phisicsCalcStep = 300
 // Durata step simulazione propagazione [s]
@@ -131,7 +129,7 @@ function resizeRendererToDisplaySizeIfNeeded(renderer, camera) {
 * @param {Body} body Corpo da posizionare.
 * @param {number} [myScaleFactor] Fattore di scala.
 */
-function setMeshPosition(body, myScaleFactor = scaleFactor){
+function setMeshPosition(body){
 
   if (body == null){
     log.console.error('Tentativo di setMeshPosition con body nullo!');
@@ -143,9 +141,9 @@ function setMeshPosition(body, myScaleFactor = scaleFactor){
     return;
   }
 
-  body.mesh.position.x = body.position.x * myScaleFactor;
-  body.mesh.position.y = body.position.y * myScaleFactor;
-  body.mesh.position.z = body.position.z * myScaleFactor;
+  body.mesh.position.x = body.position.x * scaleFactor;
+  body.mesh.position.y = body.position.y * scaleFactor;
+  body.mesh.position.z = body.position.z * scaleFactor;
 
   if (body.speedMesh == null) return;
   
@@ -157,9 +155,9 @@ function setMeshPosition(body, myScaleFactor = scaleFactor){
     ).normalize()    
   )
 
-  body.speedMesh.position.x = body.position.x * myScaleFactor;
-  body.speedMesh.position.y = body.position.y * myScaleFactor;
-  body.speedMesh.position.z = body.position.z * myScaleFactor;
+  body.speedMesh.position.x = body.position.x * scaleFactor;
+  body.speedMesh.position.y = body.position.y * scaleFactor;
+  body.speedMesh.position.z = body.position.z * scaleFactor;
 
 }
         
@@ -247,14 +245,15 @@ moon.mesh = new THREE.Mesh(moonGeometry, moonMaterial);
 scene.add(moon.mesh);
 setMeshPosition(moon);
 
-const moonLineMesh = buildLineMesh(simStepNumber, 'green');
-scene.add(moonLineMesh)
+// Create moon line mesh
+moon.lineMesh = buildLineMesh(simStepNumber, 'green') 
+scene.add(moon.lineMesh)
 
 // --- Ship -------------------------------------------------------------------
 
 var ship = new Body('Ship', 100000, 200000, 0);
 
-//Create geometry and material
+// Create ship mesh
 var shipGeometry = new THREE.SphereGeometry(200000 * scaleFactor, 50, 50 );
 var shipMaterial = new THREE.MeshPhongMaterial({
   color: 'lightgreen',
@@ -262,6 +261,10 @@ var shipMaterial = new THREE.MeshPhongMaterial({
   opacity: .8
 });
 ship.mesh = new THREE.Mesh(shipGeometry, shipMaterial);
+scene.add(ship.mesh);
+setMeshPosition(ship);
+
+// Create ship speed mesh
 ship.speedMesh = new THREE.ArrowHelper(
   new THREE.Vector3(
     ship.velocity.x,
@@ -276,13 +279,11 @@ ship.speedMesh = new THREE.ArrowHelper(
   2,
   "red"
 )
-
-const shipLineMesh = buildLineMesh(simStepNumber, 'green');
-scene.add(shipLineMesh)
-
-scene.add(ship.mesh);
 scene.add(ship.speedMesh);
-setMeshPosition(ship);
+
+// Create ship line mesh
+ship.lineMesh = buildLineMesh(simStepNumber, 'green')
+scene.add(ship.lineMesh)
 
 // ----------------------------------------------------------------------------
 
@@ -429,7 +430,7 @@ function onDocumentMouseDown( event ) {
   mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
   mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
   raycaster.setFromCamera( mouse, camera );
-  var intersects = raycaster.intersectObjects([shipLineMesh]);
+  var intersects = raycaster.intersectObjects([ship.lineMesh]);
   if (intersects.length > 0){
     console.log(intersects[0])
     let point = intersects[0].point
@@ -558,69 +559,19 @@ var render = function (actions) {
     ship.velocity = shipRes[1]
     setMeshPosition(ship);
 
+    // Propagate moon status
     let moonRes = propagate(moon.position, moon.velocity, [earth], sinceLastPhysicsCalc / 1000 * simSpeed)
     moon.position = moonRes[0]
     moon.velocity = moonRes[1]
     setMeshPosition(moon);	
+
+    // Disegna traiettorie propagate
+    buildTrajectory(ship, [earth], simStepNumber, simStepSize, maneuvers)
+    buildTrajectory(moon, [earth], simStepNumber, simStepSize, [])
     
     // Resetta tempo calcolo fisica
     sinceLastPhysicsCalc = 0;
 
-    // Prepare array of future maneuvers to simulate
-    let simManeuvers = maneuvers.slice()
-
-    // Refresh orbit propagation
-    let shipSim = ship.clone();
-    let shipSimTime = new Date().getTime()    
-    for (let step = 0; step < simStepNumber; step++){
-      
-      let posArray = shipLineMesh.geometry.getAttribute('position').array;	
-      posArray[step*3] = shipSim.position.x*scaleFactor;
-      posArray[step*3+1] = shipSim.position.y*scaleFactor;
-      posArray[step*3+2] = shipSim.position.z*scaleFactor;
-
-      let shipRes = propagate(shipSim.position, shipSim.velocity, [earth], simStepSize)
-      shipSimTime += simStepSize*1000
-      
-      shipSim.position = shipRes[0]
-      shipSim.velocity = shipRes[1]  
-      
-      // Apply maneuvers
-      simManeuvers.forEach(({time, deltaV}, i) => {
-        if (shipSimTime >= time){
-          shipSim.velocity = shipSim.velocity.add(deltaV)
-          simManeuvers.splice(i, 1)
-        }
-      })      
-      
-    }
-    shipLineMesh.geometry.setDrawRange(0, simStepNumber)
-    shipLineMesh.geometry.attributes.position.needsUpdate = true;		
-    shipLineMesh.visible = true;	
-
-
-    // Refresh MOON orbit propagation
-    let moonSim = moon.clone();
-    let moonSimTime = new Date().getTime()    
-    for (let step = 0; step < simStepNumber; step++){
-      
-      let posArray = moonLineMesh.geometry.getAttribute('position').array;	
-      posArray[step*3] = moonSim.position.x*scaleFactor;
-      posArray[step*3+1] = moonSim.position.y*scaleFactor;
-      posArray[step*3+2] = moonSim.position.z*scaleFactor;
-
-      let moonRes = propagate(moonSim.position, moonSim.velocity, [earth], simStepSize)
-      moonSimTime += simStepSize*1000
-      
-      moonSim.position = moonRes[0]
-      moonSim.velocity = moonRes[1]  
-      
-    }
-
-    moonLineMesh.geometry.setDrawRange(0, simStepNumber)
-    moonLineMesh.geometry.attributes.position.needsUpdate = true;		
-    moonLineMesh.visible = true;
-    
   }
   
   resizeRendererToDisplaySizeIfNeeded(renderer, camera);

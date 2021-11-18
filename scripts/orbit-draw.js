@@ -1,6 +1,7 @@
 import * as THREE from '../build/three.module.js'
+import {scaleFactor} from './constants.js'
 
-export function orbitDraw(calcOrbit, orbitSim, angleSteps, scaleFactor){
+export function orbitDraw(calcOrbit, orbitSim, angleSteps){
 
   let eccentricity = calcOrbit.eccentricity
   let semiMajorAxis = calcOrbit.semiMajorAxis
