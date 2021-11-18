@@ -8,6 +8,7 @@ import {orbitalCalcBody} from './scripts/orbit-calc.js'
 import {orbitDraw} from './scripts/orbit-draw.js'
 import {propagate, buildTrajectory} from './scripts/propagation-calc.js'
 import {G, scaleFactor} from './scripts/constants.js'
+import {buildLineMesh, resizeRendererToDisplaySizeIfNeeded, setMeshPosition, createAxisLabel, alignToCamera} from './scripts/functions.js'
 
 // --- Costanti ---------------------------------------------------------------
 
@@ -75,29 +76,6 @@ scene.add(starField);
 var axis = new THREE.AxesHelper(30);
 scene.add(axis);
 
-function createAxisLabel(label, font, x, y, z, color){
-
-  const xGeo = new THREE.TextGeometry( label, {
-    font: font,
-    size: 1,
-    height: .1,
-    curveSegments: 6,
-  });
-
-  let xMaterial = new THREE.MeshBasicMaterial({ color: color });
-  let xText = new THREE.Mesh(xGeo , xMaterial);
-  
-  xText.position.x = x
-  xText.position.y = y
-  xText.position.z = z
-  xText.rotation.x = camera.rotation.x;
-  xText.rotation.y = camera.rotation.y;
-  xText.rotation.z = camera.rotation.z;
-
-  return xText
-
-}
-
 const loader = new THREE.FontLoader();
 var xLabel, yLabel, zLabel
 loader.load( 'fonts/helvetiker_regular.typeface.json', function(font){
@@ -108,102 +86,6 @@ loader.load( 'fonts/helvetiker_regular.typeface.json', function(font){
   zLabel = createAxisLabel('Z', font, 0, 0, 30, 'blue')
   scene.add(zLabel)
 });
-
-// ----------------------------------------------------------------------------
-
-function resizeRendererToDisplaySizeIfNeeded(renderer, camera) {
-  
-  const canvas = renderer.domElement;
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-  const needResize = canvas.width !== width || canvas.height !== height;
-  
-  if (needResize) {
-    renderer.setSize(width, height, false);
-    const canvas = renderer.domElement;
-    camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    camera.updateProjectionMatrix();    
-  }
-  
-}
-
-/**
-* Set the position of the mesh.
-* @param {Body} body Corpo da posizionare.
-* @param {number} [myScaleFactor] Fattore di scala.
-*/
-function setMeshPosition(body){
-
-  if (body == null){
-    log.console.error('Tentativo di setMeshPosition con body nullo!');
-    return;
-  }
-
-  if (body == null){
-    log.console.error(`Tentativo di setMeshPosition (body ${body.name}) con mesh nullo!`);
-    return;
-  }
-
-  body.mesh.position.x = body.position.x * scaleFactor;
-  body.mesh.position.y = body.position.y * scaleFactor;
-  body.mesh.position.z = body.position.z * scaleFactor;
-
-  if (body.speedMesh == null) return;
-  
-  body.speedMesh.setDirection(
-    new THREE.Vector3(
-      body.velocity.x,
-      body.velocity.y,
-      body.velocity.z
-    ).normalize()    
-  )
-
-  body.speedMesh.position.x = body.position.x * scaleFactor;
-  body.speedMesh.position.y = body.position.y * scaleFactor;
-  body.speedMesh.position.z = body.position.z * scaleFactor;
-
-}
-        
-/**
-* Inizializza la mesh lineare per disegnare la propagazione di una orbita.
-* @param {*} scene
-* @param {*} simSize Numero di step.
-* @param {*} color Colore.
-* @param {boolean} dashed 
-* @returns 
-*/
-function buildLineMesh(simSize, color = 'red', dashed = false){
-  
-  // Create mesh with fake points, because the BufferGeometry has to be
-  // initialized with the right size.
-  const newSimPoints = []
-  for (let i = 0; i < simSize; i++){
-    newSimPoints.push(new THREE.Vector3(0,0,0));
-  }
-
-  const simGeometry = new THREE.BufferGeometry().setFromPoints(newSimPoints);
-
-  let simMaterial;
-  if(!dashed){
-    simMaterial = new THREE.LineBasicMaterial({ 
-      color : color
-    });
-  }
-  else {
-    simMaterial = new THREE.LineDashedMaterial({
-      linewidth: 1,
-      color: color,
-      dashSize: .5,
-      gapSize: .1
-    })	  
-  }
-
-  const mesh = new THREE.Line( simGeometry, simMaterial );
-  mesh.visible = false;
-  
-  return mesh;
-  
-}
         
 // --- Earth ------------------------------------------------------------------
 
@@ -241,7 +123,7 @@ var moonGeometry = new THREE.SphereGeometry(
   50
 );
 var moonMaterial = new THREE.MeshPhongMaterial({
-color: 0xaaaaaa
+  color: 0xaaaaaa
 });
 moon.mesh = new THREE.Mesh(moonGeometry, moonMaterial);
 
@@ -413,14 +295,6 @@ scene.add(moonOrbitSim)
 let lastIteration = Date.now();
 let spentTime = 0;
 let sinceLastPhysicsCalc = 0;
-
-function alignToCamera(item, camera){
-  if (item && camera){
-    item.rotation.x = camera.rotation.x;
-    item.rotation.y = camera.rotation.y;
-    item.rotation.z = camera.rotation.z;
-  }
-}
 
 // ----- debug prova raycaster --------------------------------------
 
