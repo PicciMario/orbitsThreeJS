@@ -41,12 +41,14 @@ export function orbitalCalcBody(orbitingBody, centreBody){
   // Orbital period
   let period = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / (G * M))
 
+  // Specific angular moment vector
+  let h = relPosition.cross(velocity)
   // Inclination
-  let h = relPosition.cross(velocity) // specific angular (orbital) moment vector
   let inclination = Math.acos(h.y / h.module())
 
-  // Longitude of ascending node
+  // Nodes vector
   let n = new Vector(0, 1, 0).cross(h)
+  // Longitude of ascending node
   let longAscNode = Math.acos(n.x / n.module())
   if (n.z < 0) longAscNode = 2*Math.PI - longAscNode
   if (isNaN(longAscNode)) longAscNode = 0

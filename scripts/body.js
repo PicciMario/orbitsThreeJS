@@ -2,24 +2,25 @@ import Vector from './vector.js'
 
 export default class Body{
   
-  constructor(name){
+  constructor(name, mass, radius, SOIRadius){
     
-	// Nome del corpo celeste
+	  // Nome del corpo celeste
     this.name = name;
-	// Massa [Kg]
-    this.mass = 0;
-	// Raggio medio [m]
-    this.radius = 0;
-	// Raggio sfera influenza [m]
-    this.SOIRadius = 0;
+	  // Massa [Kg]
+    this.mass = mass;
+	  // Raggio medio [m]
+    this.radius = radius;
+	  // Raggio sfera influenza [m]
+    this.SOIRadius = SOIRadius;
     
-	// Posizione [m, m, m]
+	  // Posizione [m, m, m]
     this.position = new Vector();
-	// Velocità [m^2, m^2, m^2]
+	  // Velocità [m^2, m^2, m^2]
     this.velocity = new Vector();
     
     this.mesh = null;
-	this.speedMesh = null;
+	  this.speedMesh = null;
+
   }
   
   /**
@@ -54,6 +55,7 @@ export default class Body{
     newBody.mesh = null;
     
     return newBody;
+
   }
   
 }

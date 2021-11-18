@@ -6,6 +6,7 @@ import Body from './scripts/body.js'
 import Vector from './scripts/vector.js'
 import {orbitalCalcBody} from './scripts/orbit-calc.js'
 import {orbitDraw} from './scripts/orbit-draw.js'
+import {propagate} from './scripts/propagation-calc.js'
 import {G} from './scripts/constants.js'
 
 // --- Costanti ---------------------------------------------------------------
@@ -161,90 +162,6 @@ function setMeshPosition(body, myScaleFactor = scaleFactor){
   body.speedMesh.position.z = body.position.z * myScaleFactor;
 
 }
-
-/**
-* Returns final (position, velocity) array after time dt has passed.
-* @param {Body[]} attractors Attractors influencing this object.
-* @param {Vector} initialPosition Initial position.
-* @param {Vector} initialVelocity Initial velocity.
-* @param {Function} accFunction Acceleration function (attractors, position, velocity, deltaTime).
-* @param {Number} dt Time step (seconds).
-* @returns {Vector[]} Status vector [position, velocity]
-* @see https://mtdevans.com/2013/05/fourth-order-runge-kutta-algorithm-in-javascript-with-demo/
-*/
-export function rk4(attractors, initialPosition, initialVelocity, accFunction, dt){
-  
-  let position1 = initialPosition.clone();
-  let velocity1 = initialVelocity.clone();
-  let acceleration1 = accFunction(attractors, position1, velocity1, 0);
-  
-  let position2 = initialPosition.add(velocity1.scale(0.5*dt));
-  let velocity2 = initialVelocity.add(acceleration1.scale(0.5*dt));
-  let acceleration2 = accFunction(attractors, position2, velocity2, dt/2);
-  
-  let position3 = initialPosition.add(velocity2.scale(0.5*dt));
-  let velocity3 = initialVelocity.add(acceleration2.scale(0.5*dt));
-  let acceleration3 = accFunction(attractors, position3, velocity3, dt/2);
-  
-  let position4 = initialPosition.add(velocity3.scale(dt));
-  let velocity4 = initialVelocity.add(acceleration3.scale(dt));
-  let acceleration4 = accFunction(attractors, position4, velocity4, dt);
-  
-  let finalPosition = position1.add(
-    (
-      velocity1
-      .add(velocity2.scale(2))
-      .add(velocity3.scale(2))
-      .add(velocity4)
-    ).scale(dt/6)
-  );
-      
-  let finalVelocity = velocity1.add(
-    (
-      acceleration1
-      .add(acceleration2.scale(2))
-      .add(acceleration3.scale(2))
-      .add(acceleration4)
-    ).scale(dt/6)
-  );
-          
-  return [finalPosition, finalVelocity];
-          
-}
-        
-/**
-* Propagates the state vector of timestep seconds.
-* @param {Vector} actualPosition Position of the orbiter.
-* @param {Vector} actualVelocity Velocity of the orbiter.
-* @param {Body[]} attractors Attractors inlfuencing this orbiter.
-* @param {number} timestep Time step (in seconds).
-* @return {Vector[]} New state [position, velocity]
-*/
-function propagate(actualPosition, actualVelocity, attractors, timestep){
-  return rk4(attractors, actualPosition, actualVelocity, acceleration, timestep);
-}
-
-/**
-* Acceleration function of a body in the future.
-* @param {Body[]} attractors
-* @param {Vector} position 
-* @return {Vector} Acceleration.
-*/
-export function acceleration(attractors, position){
-  
-  return attractors
-  .filter(attr => attr.SORadius != 0)
-  //.filter(attr => position.diff(attr.position).module() <= attr.SOIRadius)
-  .map(attr => {
-    let distVector = position.diff(attr.position);
-    // Gravity force: G * bodyMass * earthMass / Math.pow(earthDistance, 2)
-    // Gravity acceleration: earthDistNorm.minus().scale(gravityForce / bodyMass)
-    // Gravity acc. does NOT depend from orbiter mass.		
-    return distVector.norm().minus().scale(G * attr.mass / Math.pow(distVector.module(), 2));
-  })
-  .reduce((prev, curr) => prev.add(curr), new Vector())	
-  
-}
         
 /**
 * Inizializza la mesh lineare per disegnare la propagazione di una orbita.
@@ -289,12 +206,7 @@ function buildLineMesh(simSize, color = 'red', dashed = false){
         
 // --- Earth ------------------------------------------------------------------
 
-var earth = new Body('Earth');
-earth.mass = 5.972e24;
-earth.radius = 6371e3;
-earth.SOIRadius = 0.929e9;
-earth.position = new Vector(0,0,0);
-earth.velocity = new Vector(0,0,0);
+var earth = new Body('Earth', 5.972e24, 6371e3, 0.929e9);
 
 // Costruzione mesh
 let earthGeometry = new THREE.SphereGeometry( 
@@ -315,19 +227,11 @@ setMeshPosition(earth);
 
 // --- Moon -------------------------------------------------------------------
 
-var moon = new Body('Moon');
-moon.mass = 7.3477e22;
-moon.radius = 1737.1e3;
-moon.SOIRadius = 0.0661e9;
-
-let orbitRadius = 3.844e8
-let orbitAngle = 0
-let orbitX = orbitRadius * Math.cos(orbitAngle)
-let orbitZ = orbitRadius * Math.sin(orbitAngle)
-moon.position = earth.position.add(new Vector(orbitX, 0, orbitZ));
+var moon = new Body('Moon', 7.3477e22, 1737.1e3, 0.0661e9);
+moon.position = earth.calcSatellitePosition(3.844e8, 90, 0)
 
 let orbitVelocity = 1027.77	
-moon.velocity = new Vector(0, 0, orbitVelocity);
+moon.velocity = new Vector(0, 0, -orbitVelocity);
 
 //Create geometry and material
 var moonGeometry = new THREE.SphereGeometry(
@@ -343,11 +247,44 @@ moon.mesh = new THREE.Mesh(moonGeometry, moonMaterial);
 scene.add(moon.mesh);
 setMeshPosition(moon);
 
+const moonLineMesh = buildLineMesh(simStepNumber, 'green');
+scene.add(moonLineMesh)
+
 // --- Ship -------------------------------------------------------------------
 
-var ship = new Body('Ship');
-ship.mass = 100000;
-ship.radius = 200000;
+var ship = new Body('Ship', 100000, 200000, 0);
+
+//Create geometry and material
+var shipGeometry = new THREE.SphereGeometry(200000 * scaleFactor, 50, 50 );
+var shipMaterial = new THREE.MeshPhongMaterial({
+  color: 'lightgreen',
+  transparent: true,
+  opacity: .8
+});
+ship.mesh = new THREE.Mesh(shipGeometry, shipMaterial);
+ship.speedMesh = new THREE.ArrowHelper(
+  new THREE.Vector3(
+    ship.velocity.x,
+    ship.velocity.y,
+    ship.velocity.z
+  ).normalize(),
+  new THREE.Vector3(
+    ship.position.x * scaleFactor,
+    ship.position.y * scaleFactor,
+    ship.position.z * scaleFactor
+  ),
+  2,
+  "red"
+)
+
+const shipLineMesh = buildLineMesh(simStepNumber, 'green');
+scene.add(shipLineMesh)
+
+scene.add(ship.mesh);
+scene.add(ship.speedMesh);
+setMeshPosition(ship);
+
+// ----------------------------------------------------------------------------
 
 // Meccanismo di selezione di casi di test
 let orbitTests = [
@@ -407,40 +344,6 @@ orbitTests.forEach(({desc, position, velocity}, i) => {
 ship.position = orbitTests[0]['position']
 ship.velocity = orbitTests[0]['velocity']
 document.getElementById('orbitTest0').classList.add('orbits-selected')
-
-
-//Create geometry and material
-var shipGeometry = new THREE.SphereGeometry(200000 * scaleFactor, 50, 50 );
-var shipMaterial = new THREE.MeshPhongMaterial({
-  color: 'lightgreen',
-  transparent: true,
-  opacity: .8
-});
-ship.mesh = new THREE.Mesh(shipGeometry, shipMaterial);
-ship.speedMesh = new THREE.ArrowHelper(
-  new THREE.Vector3(
-    ship.velocity.x,
-    ship.velocity.y,
-    ship.velocity.z
-  ).normalize(),
-  new THREE.Vector3(
-    ship.position.x * scaleFactor,
-    ship.position.y * scaleFactor,
-    ship.position.z * scaleFactor
-  ),
-  2,
-  "red"
-)
-
-const shipLineMesh = buildLineMesh(simStepNumber, 'green');
-scene.add(shipLineMesh)
-
-scene.add(ship.mesh);
-scene.add(ship.speedMesh);
-setMeshPosition(ship);
-
-const moonLineMesh = buildLineMesh(simStepNumber, 'green');
-scene.add(moonLineMesh)
 
 // ----------------------------------------------------------------------------
 
@@ -719,9 +622,6 @@ var render = function (actions) {
     moonLineMesh.visible = true;
     
   }
-
-
-  
   
   resizeRendererToDisplaySizeIfNeeded(renderer, camera);
   renderer.render(scene, camera);
