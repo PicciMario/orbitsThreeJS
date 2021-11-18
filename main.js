@@ -43,9 +43,9 @@ document.body.appendChild(stats.dom)
 const controls = new OrbitControls(camera, canvas);
 controls.target.set(0, 0, 0);
 controls.mouseButtons = {
-	LEFT: null,
-	MIDDLE: THREE.MOUSE.PAN, //THREE.MOUSE.DOLLY
-	RIGHT: THREE.MOUSE.ROTATE,
+  LEFT: null,
+  MIDDLE: THREE.MOUSE.PAN, //THREE.MOUSE.DOLLY
+  RIGHT: THREE.MOUSE.ROTATE,
 }
 controls.update();
 
@@ -331,9 +331,9 @@ moon.velocity = new Vector(0, 0, orbitVelocity);
 
 //Create geometry and material
 var moonGeometry = new THREE.SphereGeometry(
-	moon.radius * scaleFactor, 
-	50, 
-	50
+  moon.radius * scaleFactor, 
+  50, 
+  50
 );
 var moonMaterial = new THREE.MeshPhongMaterial({
 color: 0xaaaaaa
@@ -351,16 +351,16 @@ ship.radius = 200000;
 
 // Meccanismo di selezione di casi di test
 let orbitTests = [
-	{
-		desc: 'Zero',
-		position: earth.calcSatellitePosition(400e3, 0, 0),
-		velocity: new Vector(-7670-2500, 1000, 0)//.add(new Vector(-100, 1000, -1000)).add(new Vector(0, 1000, -100))
-	},
-	{
-		desc: 'Uno',
-		position: earth.calcSatellitePosition(400e3, 0, 0),
-		velocity: new Vector(-7670-2500, -1000, 0) 		
-	},
+  {
+    desc: 'Zero',
+    position: earth.calcSatellitePosition(400e3, 0, 0),
+    velocity: new Vector(-7670-2500, 1000, 0)//.add(new Vector(-100, 1000, -1000)).add(new Vector(0, 1000, -100))
+  },
+  {
+    desc: 'Uno',
+    position: earth.calcSatellitePosition(400e3, 0, 0),
+    velocity: new Vector(-7670-2500, -1000, 0) 		
+  },
   {
     desc: 'Due',
     position: earth.calcSatellitePosition(400e3, 0, 0),
@@ -390,19 +390,19 @@ let orbitTests = [
 
 orbitTests.forEach(({desc, position, velocity}, i) => {
   let id = `orbitTest${i}`
-	let newDiv = document.createElement('div')
+  let newDiv = document.createElement('div')
   newDiv.id = id
-	newDiv.innerHTML = desc
-	newDiv.classList.add('orbit')
-	newDiv.addEventListener('click', function (event) {
+  newDiv.innerHTML = desc
+  newDiv.classList.add('orbit')
+  newDiv.addEventListener('click', function (event) {
     ship.position = position
     ship.velocity = velocity
     Array.from(document.getElementsByClassName("orbits-selected")).forEach(
       elem => elem.classList.remove('orbits-selected')
     )
     document.getElementById(id).classList.add('orbits-selected')
-	});
-	document.getElementById('orbitsSelector').appendChild(newDiv)
+  });
+  document.getElementById('orbitsSelector').appendChild(newDiv)
 })
 ship.position = orbitTests[0]['position']
 ship.velocity = orbitTests[0]['velocity']
@@ -446,22 +446,22 @@ scene.add(moonLineMesh)
 
 function drawVector(start, vector, color = "yellow"){
 
-	const lineMat = new THREE.LineBasicMaterial( { color: color } );
+  const lineMat = new THREE.LineBasicMaterial( { color: color } );
 
-	const linePoints = [];  
+  const linePoints = [];  
   linePoints.push( new THREE.Vector3( 
-		start.x,
-		start.y,
-		start.z
-	));
-	linePoints.push( new THREE.Vector3( 
-		start.x + vector.x,
-		start.y + vector.y,
-		start.z + vector.z
-	));
+    start.x,
+    start.y,
+    start.z
+  ));
+  linePoints.push( new THREE.Vector3( 
+    start.x + vector.x,
+    start.y + vector.y,
+    start.z + vector.z
+  ));
 
-	const lineGeometry = new THREE.BufferGeometry().setFromPoints( linePoints );	
-	
+  const lineGeometry = new THREE.BufferGeometry().setFromPoints( linePoints );	
+  
   const lineMesh = new THREE.Line( lineGeometry, lineMat );
 
   scene.add(lineMesh)	
@@ -522,14 +522,14 @@ var raycaster = new THREE.Raycaster();
 raycaster.linePrecision = 0.2;
 var mouse = new THREE.Vector2();
 function onDocumentMouseDown( event ) {
-	event.preventDefault();
-	mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
-	mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
-	raycaster.setFromCamera( mouse, camera );
-	var intersects = raycaster.intersectObjects([shipLineMesh]);
-	if (intersects.length > 0){
+  event.preventDefault();
+  mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
+  mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
+  raycaster.setFromCamera( mouse, camera );
+  var intersects = raycaster.intersectObjects([shipLineMesh]);
+  if (intersects.length > 0){
     console.log(intersects[0])
-		let point = intersects[0].point
+    let point = intersects[0].point
     var pointGeometry = new THREE.SphereGeometry(100000 * scaleFactor, 50, 50 );
     var pointMaterial = new THREE.MeshPhongMaterial({
       color: 'lightgreen',
@@ -541,7 +541,7 @@ function onDocumentMouseDown( event ) {
     pointMesh.position.y = point.y
     pointMesh.position.z = point.z
     scene.add(pointMesh)
-	}
+  }
 }
 
 // -----------------------------------------------------------------
@@ -562,13 +562,13 @@ let maneuvers = [
 maneuvers.forEach((maneuver, i) => maneuver['id'] = `man${i}`)
 maneuvers.forEach(({time, deltaV, id}) => {
 
-	let newDiv = document.createElement('div')
+  let newDiv = document.createElement('div')
   newDiv.id = id
   newDiv.classList.add('maneuverToDo')
 
   let printTime = new Date(time).toLocaleString()
   let printDeltaV = `x: ${deltaV.x}, y: ${deltaV.y}, z: ${deltaV.z},`
-	newDiv.innerHTML = `- ${printTime} ${printDeltaV}`
+  newDiv.innerHTML = `- ${printTime} ${printDeltaV}`
 
   document.getElementById('maneuvers').appendChild(newDiv)
 
@@ -598,7 +598,7 @@ function refreshOrbitalParamsUI(calcOrbit){
   ]
 
   orbitalParamsListUI.forEach(({div, label, unit, val}) => {
-	  document.getElementById(div).innerHTML = `${label}: ${val.toLocaleString(undefined, {maximumFractionDigits:2})} ${unit}`
+    document.getElementById(div).innerHTML = `${label}: ${val.toLocaleString(undefined, {maximumFractionDigits:2})} ${unit}`
   })
 
 }
@@ -668,7 +668,7 @@ var render = function (actions) {
 
     // Refresh orbit propagation
     let shipSim = ship.clone();
-	  let shipSimTime = new Date().getTime()    
+    let shipSimTime = new Date().getTime()    
     for (let step = 0; step < simStepNumber; step++){
       
       let posArray = shipLineMesh.geometry.getAttribute('position').array;	
@@ -677,7 +677,7 @@ var render = function (actions) {
       posArray[step*3+2] = shipSim.position.z*scaleFactor;
 
       let shipRes = propagate(shipSim.position, shipSim.velocity, [earth], simStepSize)
-	    shipSimTime += simStepSize*1000
+      shipSimTime += simStepSize*1000
       
       shipSim.position = shipRes[0]
       shipSim.velocity = shipRes[1]  
@@ -698,7 +698,7 @@ var render = function (actions) {
 
     // Refresh MOON orbit propagation
     let moonSim = moon.clone();
-	  let moonSimTime = new Date().getTime()    
+    let moonSimTime = new Date().getTime()    
     for (let step = 0; step < simStepNumber; step++){
       
       let posArray = moonLineMesh.geometry.getAttribute('position').array;	
@@ -707,7 +707,7 @@ var render = function (actions) {
       posArray[step*3+2] = moonSim.position.z*scaleFactor;
 
       let moonRes = propagate(moonSim.position, moonSim.velocity, [earth], simStepSize)
-	    moonSimTime += simStepSize*1000
+      moonSimTime += simStepSize*1000
       
       moonSim.position = moonRes[0]
       moonSim.velocity = moonRes[1]  
