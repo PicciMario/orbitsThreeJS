@@ -18,6 +18,9 @@ const simStepSize = 100;
 // Numero step simulazione propagazione
 const simStepNumber = 10000;
 
+// Moltiplicatore velocità simulazione
+let simSpeed = 10
+
 // --- Inizializzazione elementi fissi ----------------------------------------
 
 // Inizializzazione videocamera
@@ -452,14 +455,14 @@ function onDocumentMouseDown( event ) {
 
 // Maneuvers
 let maneuvers = [
-  {
-    time: new Date(new Date().getTime() + 10000),
-    deltaV: new Vector(-100, 1000, -1000)
-  },
-  {
-    time: new Date(new Date().getTime() + 20000),
-    deltaV: new Vector(0, 1000, -100)
-  }  
+  // {
+  //   time: new Date(new Date().getTime() + 10000),
+  //   deltaV: new Vector(-100, 1000, -1000)
+  // },
+  // {
+  //   time: new Date(new Date().getTime() + 20000),
+  //   deltaV: new Vector(0, 1000, -100)
+  // }  
 ]
 
 // Stampa elenco manovre
@@ -521,9 +524,7 @@ var render = function (actions) {
   lastIteration = Date.now();	
 
   // Allineamento etichette assi
-  alignToCamera(xLabel, camera)
-  alignToCamera(yLabel, camera)
-  alignToCamera(zLabel, camera)
+  [xLabel, yLabel, zLabel].forEach(label => alignToCamera(label, camera))
   
   // Step calcoli fisici
   if (sinceLastPhysicsCalc > phisicsCalcStep){
@@ -553,16 +554,15 @@ var render = function (actions) {
     earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * sinceLastPhysicsCalc;
     
     // Propagate ship status
-    let simSpeed = 1
-    let shipRes = propagate(ship.position, ship.velocity, [earth], sinceLastPhysicsCalc / 1000 * simSpeed)
-    ship.position = shipRes[0]
-    ship.velocity = shipRes[1]
+    let [shipPosition, shipVelocity] = propagate(ship.position, ship.velocity, [earth], sinceLastPhysicsCalc / 1000 * simSpeed)
+    ship.position = shipPosition
+    ship.velocity = shipVelocity
     setMeshPosition(ship);
 
     // Propagate moon status
-    let moonRes = propagate(moon.position, moon.velocity, [earth], sinceLastPhysicsCalc / 1000 * simSpeed)
-    moon.position = moonRes[0]
-    moon.velocity = moonRes[1]
+    let [moonPosition, moonVelocity] = propagate(moon.position, moon.velocity, [earth], sinceLastPhysicsCalc / 1000 * simSpeed)
+    moon.position = moonPosition
+    moon.velocity = moonVelocity
     setMeshPosition(moon);	
 
     // Disegna traiettorie propagate
