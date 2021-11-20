@@ -327,29 +327,59 @@ function onDocumentMouseDown( event ) {
 
 // -----------------------------------------------------------------
 
+function randomID(){
+  return '_' + Math.random().toString(36).substr(2, 9);
+}
+
+
 // Maneuvers
 let maneuvers = [
-  // {
-  //   time: new Date(new Date().getTime() + 10000),
-  //   deltaV: new Vector(-100, 1000, -1000)
-  // },
-  // {
-  //   time: new Date(new Date().getTime() + 20000),
-  //   deltaV: new Vector(0, 1000, -100)
-  // }  
+  {
+    time: new Date(new Date().getTime() + 10000),
+    prograde: 100,
+    radial: 0,
+    normal: 0
+  },
+  {
+    time: new Date(new Date().getTime() + 20000),
+    prograde: 0,
+    radial: 0,
+    normal: 1000
+  }  
 ]
 
 // Stampa elenco manovre
-maneuvers.forEach((maneuver, i) => maneuver['id'] = `man${i}`)
-maneuvers.forEach(({time, deltaV, id}) => {
+maneuvers.forEach(maneuver => maneuver['id'] = randomID())
+maneuvers.forEach(({time, id, prograde, radial, normal}) => {
 
-  let newDiv = document.createElement('div')
+  let newDiv = document.getElementById('maneuver-prototype')
+  newDiv = newDiv.cloneNode(true)
   newDiv.id = id
+  newDiv.classList.remove('hidden')
   newDiv.classList.add('maneuverToDo')
 
-  let printTime = new Date(time).toLocaleString()
-  let printDeltaV = `x: ${deltaV.x}, y: ${deltaV.y}, z: ${deltaV.z},`
-  newDiv.innerHTML = `- ${printTime} ${printDeltaV}`
+  let label = newDiv.getElementsByClassName("maneuver-label")[0]
+  label.innerHTML = new Date(time).toLocaleString() 
+
+  let labelPro = newDiv.getElementsByClassName("maneuver-prograde")[0]
+  labelPro.innerHTML = prograde
+
+  let labelRad = newDiv.getElementsByClassName("maneuver-radial")[0]
+  labelRad.innerHTML = radial
+
+  let labelNorm = newDiv.getElementsByClassName("maneuver-normal")[0]
+  labelNorm.innerHTML = normal
+
+  let button = newDiv.getElementsByClassName("maneuver-button")[0]
+  button.addEventListener("click", function() {
+    maneuvers = maneuvers.filter(man => man.id !== id)
+    document.getElementById(id).remove()
+  })
+
+  let buttonAddPro = newDiv.getElementsByClassName("maneuver-add-prograde")[0]
+  buttonAddPro.addEventListener("click", function() {
+    maneuvers.filter(man => man.id == id).forEach(man => man.prograde = man.prograde + 100)
+  })  
 
   document.getElementById('maneuvers').appendChild(newDiv)
 
@@ -390,6 +420,27 @@ function refreshOrbitalParamsUI(calcOrbit){
 let calcOrbitMoon = orbitalCalcBody(moon, earth)
 orbitDraw(calcOrbitMoon, moonOrbitSim, angleSteps, scaleFactor)  
 
+
+setInterval(() => {
+
+    // Rotate earth
+    earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * 300;  
+
+    // Propagate ship status
+    let [shipPosition, shipVelocity] = propagate(ship.position, ship.velocity, [earth], 300 / 1000 * simSpeed)
+    ship.position = shipPosition
+    ship.velocity = shipVelocity
+    setMeshPosition(ship);
+
+    // Propagate moon status
+    let [moonPosition, moonVelocity] = propagate(moon.position, moon.velocity, [earth], 300 / 1000 * simSpeed)
+    moon.position = moonPosition
+    moon.velocity = moonVelocity
+    setMeshPosition(moon);	
+
+}, 300)
+
+
 var render = function (actions) {
   
   // Checking time
@@ -404,9 +455,19 @@ var render = function (actions) {
   if (sinceLastPhysicsCalc > phisicsCalcStep){
 
     // Apply maneuvers
-    maneuvers.forEach(({time, deltaV, id}, i) => {
+    maneuvers.forEach(({time, deltaV, id, prograde, radial, normal}, i) => {
       if (new Date() >= time){
-        ship.velocity = ship.velocity.add(deltaV)
+
+        let velVector = ship.velocity.norm()
+        let radVector = ship.position.diff(earth.position).norm()
+        let normVector = velVector.cross(radVector).norm()
+
+        ship.velocity = ship.velocity
+          .add(velVector.scale(prograde))
+          .add(radVector.scale(radial))
+          .add(normVector.scale(normal))
+
+        // ship.velocity = ship.velocity.add(deltaV)
         maneuvers.splice(i, 1)
         console.log('Applied deltaV', deltaV)
 
@@ -423,21 +484,6 @@ var render = function (actions) {
 
     // Aggiorna parametri orbita simulata e stato corrente su UI
     refreshOrbitalParamsUI(calcOrbit)
-        
-    // Rotate earth
-    earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * sinceLastPhysicsCalc;
-    
-    // Propagate ship status
-    let [shipPosition, shipVelocity] = propagate(ship.position, ship.velocity, [earth], sinceLastPhysicsCalc / 1000 * simSpeed)
-    ship.position = shipPosition
-    ship.velocity = shipVelocity
-    setMeshPosition(ship);
-
-    // Propagate moon status
-    let [moonPosition, moonVelocity] = propagate(moon.position, moon.velocity, [earth], sinceLastPhysicsCalc / 1000 * simSpeed)
-    moon.position = moonPosition
-    moon.velocity = moonVelocity
-    setMeshPosition(moon);	
 
     // Disegna traiettorie propagate
     buildTrajectory(ship, [earth], simStepNumber, simStepSize, maneuvers)

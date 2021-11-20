@@ -57,3 +57,7 @@ html, body {
 .maneuverDone{
 	color: red;
 }
+
+.hidden{
+	display:none;
+}

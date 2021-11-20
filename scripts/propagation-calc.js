@@ -120,9 +120,19 @@ export function buildTrajectory(ship, attractors, simStepNumber, simStepSize, ma
     shipSim.velocity = shipRes[1]  
     
     // Apply maneuvers
-    simManeuvers.forEach(({time, deltaV}, i) => {
+    simManeuvers.forEach(({time, deltaV, prograde, radial, normal}, i) => {
       if (shipSimTime >= time){
-        shipSim.velocity = shipSim.velocity.add(deltaV)
+
+        let velVector = shipSim.velocity.norm()
+        let radVector = shipSim.position.diff(attractors[0].position).norm()
+        let normVector = velVector.cross(radVector).norm()
+
+        shipSim.velocity = shipSim.velocity
+          .add(velVector.scale(prograde))
+          .add(radVector.scale(radial))
+          .add(normVector.scale(normal))
+
+        // shipSim.velocity = shipSim.velocity.add(deltaV)
         simManeuvers.splice(i, 1)
       }
     })      
