@@ -68,6 +68,12 @@ export function orbitalCalcBody(orbitingBody, centreBody){
   let vApoapsis = Math.sqrt(G * M * ((2/rApoapsis)-(1/semiMajorAxis)))
   let vPeriapsis = Math.sqrt(G * M * ((2/rPeriapsis)-(1/semiMajorAxis)))
 
+  // True anomaly
+  let trueAnomaly = Math.acos(eccVector.dot(relPosition) / (eccVector.module() * relPosition.module()))
+  if (relPosition.dot(velocity) < 0){
+    trueAnomaly = 2 * Math.PI - trueAnomaly
+  }
+
   return({
     
     v_0,
@@ -86,6 +92,7 @@ export function orbitalCalcBody(orbitingBody, centreBody){
     vApoapsis,
     vPeriapsis,
     eccVector,
+    trueAnomaly,
 
     orbitingBody, 
     centreBody    

@@ -334,18 +334,18 @@ function randomID(){
 
 // Maneuvers
 let maneuvers = [
-  {
-    time: new Date(new Date().getTime() + 10000),
-    prograde: 100,
-    radial: 0,
-    normal: 0
-  },
-  {
-    time: new Date(new Date().getTime() + 20000),
-    prograde: 0,
-    radial: 0,
-    normal: 1000
-  }  
+  // {
+  //   time: new Date(new Date().getTime() + 10000),
+  //   prograde: 100,
+  //   radial: 0,
+  //   normal: 0
+  // },
+  // {
+  //   time: new Date(new Date().getTime() + 20000),
+  //   prograde: 0,
+  //   radial: 0,
+  //   normal: 1000
+  // }  
 ]
 
 // Stampa elenco manovre
@@ -405,7 +405,7 @@ function refreshOrbitalParamsUI(calcOrbit){
     {div: 'vCur', 				      label: 'v', 			      unit: 'm/s', 	  val: calcOrbit.orbitingBody.velocity.module()},
     {div: 'rCur', 				      label: 'r', 			      unit: 'km', 	  val: calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() / 1000},
     {div: 'dCur', 				      label: 'h', 			      unit: 'km', 	  val: (calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() - calcOrbit.centreBody.radius) / 1000},
-    {div: 'thetaCur', 			    label: 'theta', 	    	unit: 'deg.', 	val: calcOrbit.angle_0*180/Math.PI},
+    {div: 'trueAn', 			      label: 'True an.',    	unit: 'deg.', 	val: calcOrbit.trueAnomaly*180/Math.PI},
   ]
 
   orbitalParamsListUI.forEach(({div, label, unit, val}) => {
