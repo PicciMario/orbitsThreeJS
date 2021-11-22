@@ -61,3 +61,14 @@ html, body {
 .hidden{
 	display:none;
 }
+
+#timeDiv{
+	position: absolute;
+	background-color: black;
+	color: lightgreen;
+	top: 5px;
+    left: 50%;
+    transform: translate(-50%, 0);
+	border: 1px solid lightgreen;
+	padding: 5px;
+}

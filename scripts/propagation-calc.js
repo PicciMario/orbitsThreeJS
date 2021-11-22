@@ -86,14 +86,14 @@ export function acceleration(attractors, position){
 }
 
 
-export function buildTrajectory(ship, attractors, simStepNumber, simStepSize, maneuvers){
+export function buildTrajectory(currentTime, ship, attractors, simStepNumber, simStepSize, maneuvers){
 
   // Prepare array of future maneuvers to simulate
   let simManeuvers = maneuvers.slice()
 
   // Refresh orbit propagation
   let shipSim = ship.clone();
-  let shipSimTime = new Date().getTime();
+  let shipSimTime = currentTime;
   let shipStepNumber = 0;
   for (let step = 0; step < simStepNumber; step++){
 
@@ -114,13 +114,14 @@ export function buildTrajectory(ship, attractors, simStepNumber, simStepSize, ma
     if (collision) break;
 
     let shipRes = propagate(shipSim.position, shipSim.velocity, attractors, simStepSize)
-    shipSimTime += simStepSize*1000
+    shipSimTime = new Date(shipSimTime.getTime() + simStepSize*1000)
     
     shipSim.position = shipRes[0]
     shipSim.velocity = shipRes[1]  
     
     // Apply maneuvers
-    simManeuvers.forEach(({time, deltaV, prograde, radial, normal}, i) => {
+    simManeuvers.forEach(({time, prograde, radial, normal}, i) => {
+
       if (shipSimTime >= time){
 
         let velVector = shipSim.velocity.norm()

@@ -9,7 +9,9 @@
   <script type="module" src='main.js'></script>
 </head>
 <body>
+
   	<canvas id="c"></canvas>
+
   	<div id="textDiv">
 		According to Earth orbit:
   		<div id="specificEnergyDiv"></div>
@@ -29,8 +31,9 @@
 		<div id="dCur"></div>
 		<div id="trueAn"></div>
 	</div>
-	<div id="orbitsSelector">
-	</div>
+
+	<div id="orbitsSelector"></div>
+
 	<div id="maneuvers">
 		<div>Next maneuvers:</div>
 		<div id='maneuver-prototype' class='hidden'>
@@ -44,6 +47,13 @@
 			<span class='maneuver-normal'></span>
 			<button class="maneuver-add-prograde">+</button>
 		</div>
+	</div>
+
+	<div id="timeDiv">
+		<span class="timeDiv-currTime"></span>
+		<span class="timeDiv-timeAcc"></span>
+		<button class="timeDiv-incTimeAcc">+</button>
+		<button class="timeDiv-decTimeAcc">-</button>
 	</div>
 
 </body>

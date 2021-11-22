@@ -19,9 +19,6 @@ const simStepSize = 100;
 // Numero step simulazione propagazione
 const simStepNumber = 10000;
 
-// Moltiplicatore velocità simulazione
-let simSpeed = 10
-
 // --- Inizializzazione elementi fissi ----------------------------------------
 
 // Inizializzazione videocamera
@@ -334,14 +331,14 @@ function randomID(){
 
 // Maneuvers
 let maneuvers = [
+  {
+    time: new Date(new Date().getTime() + 2.5 * 60 * 60 * 1000),
+    prograde: 100,
+    radial: 0,
+    normal: 0
+  },
   // {
-  //   time: new Date(new Date().getTime() + 10000),
-  //   prograde: 100,
-  //   radial: 0,
-  //   normal: 0
-  // },
-  // {
-  //   time: new Date(new Date().getTime() + 20000),
+  //   time: new Date(new Date().getTime() + 200 * 1000),
   //   prograde: 0,
   //   radial: 0,
   //   normal: 1000
@@ -416,27 +413,49 @@ function refreshOrbitalParamsUI(calcOrbit){
 
 // -----------------------------------------------------------------
 
+// Timekeeping simulazione
+
+let currentTime = new Date()
+
+// Simulation step in seconds
+let timeStep = .3
+
+// Moltiplicatore velocità simulazione
+let timeSpeed = 10
+
+document.getElementById('timeDiv').getElementsByClassName('timeDiv-incTimeAcc')[0].addEventListener("click", event => {
+  timeSpeed = Math.min(timeSpeed * 10, 10000)
+})
+document.getElementById('timeDiv').getElementsByClassName('timeDiv-decTimeAcc')[0].addEventListener("click", event => {
+  timeSpeed = Math.max(1, timeSpeed / 10)
+})
+
+// -----------------------------------------------------------------
+
 // Calcola e disegna orbita simulata Luna
 let calcOrbitMoon = orbitalCalcBody(moon, earth)
 orbitDraw(calcOrbitMoon, moonOrbitSim, angleSteps, scaleFactor)  
 
-
 setInterval(() => {
 
-    // Rotate earth
-    earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * 300;  
+  currentTime = new Date(currentTime.getTime() + timeStep * 1000 * timeSpeed)
+  document.getElementById('timeDiv').getElementsByClassName('timeDiv-currTime')[0].innerHTML = currentTime.toLocaleString()
+  document.getElementById('timeDiv').getElementsByClassName('timeDiv-timeAcc')[0].innerHTML = timeSpeed
 
-    // Propagate ship status
-    let [shipPosition, shipVelocity] = propagate(ship.position, ship.velocity, [earth], 300 / 1000 * simSpeed)
-    ship.position = shipPosition
-    ship.velocity = shipVelocity
-    setMeshPosition(ship);
+  // Rotate earth
+  earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * 300;  
 
-    // Propagate moon status
-    let [moonPosition, moonVelocity] = propagate(moon.position, moon.velocity, [earth], 300 / 1000 * simSpeed)
-    moon.position = moonPosition
-    moon.velocity = moonVelocity
-    setMeshPosition(moon);	
+  // Propagate ship status
+  let [shipPosition, shipVelocity] = propagate(ship.position, ship.velocity, [earth], timeStep * timeSpeed)
+  ship.position = shipPosition
+  ship.velocity = shipVelocity
+  setMeshPosition(ship);
+
+  // Propagate moon status
+  let [moonPosition, moonVelocity] = propagate(moon.position, moon.velocity, [earth], timeStep * timeSpeed)
+  moon.position = moonPosition
+  moon.velocity = moonVelocity
+  setMeshPosition(moon);	
 
 }, 300)
 
@@ -456,7 +475,7 @@ var render = function (actions) {
 
     // Apply maneuvers
     maneuvers.forEach(({time, deltaV, id, prograde, radial, normal}, i) => {
-      if (new Date() >= time){
+      if (currentTime >= time){
 
         let velVector = ship.velocity.norm()
         let radVector = ship.position.diff(earth.position).norm()
@@ -486,8 +505,8 @@ var render = function (actions) {
     refreshOrbitalParamsUI(calcOrbit)
 
     // Disegna traiettorie propagate
-    buildTrajectory(ship, [earth], simStepNumber, simStepSize, maneuvers)
-    buildTrajectory(moon, [earth], simStepNumber, simStepSize, [])
+    buildTrajectory(currentTime, ship, [earth], simStepNumber, simStepSize, maneuvers)
+    buildTrajectory(currentTime, moon, [earth], simStepNumber, simStepSize, [])
     
     // Resetta tempo calcolo fisica
     sinceLastPhysicsCalc = 0;
