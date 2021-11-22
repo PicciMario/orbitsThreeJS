@@ -89,7 +89,7 @@ export function acceleration(attractors, position){
 export function buildTrajectory(currentTime, ship, attractors, simStepNumber, simStepSize, maneuvers){
 
   // Prepare array of future maneuvers to simulate
-  let simManeuvers = maneuvers.slice()
+  let simManeuvers = maneuvers.slice().sort((a,b) => a.time < b.time)
 
   // Refresh orbit propagation
   let shipSim = ship.clone();
@@ -112,13 +112,7 @@ export function buildTrajectory(currentTime, ship, attractors, simStepNumber, si
       }    
     })  
     if (collision) break;
-
-    let shipRes = propagate(shipSim.position, shipSim.velocity, attractors, simStepSize)
-    shipSimTime = new Date(shipSimTime.getTime() + simStepSize*1000)
-    
-    shipSim.position = shipRes[0]
-    shipSim.velocity = shipRes[1]  
-    
+   
     // Apply maneuvers
     simManeuvers.forEach(({time, prograde, radial, normal}, i) => {
 
@@ -133,10 +127,28 @@ export function buildTrajectory(currentTime, ship, attractors, simStepNumber, si
           .add(radVector.scale(radial))
           .add(normVector.scale(normal))
 
-        // shipSim.velocity = shipSim.velocity.add(deltaV)
         simManeuvers.splice(i, 1)
+
       }
-    })      
+
+    })   
+
+    let simTimeIncrement = simStepSize
+
+    if (maneuvers.length > 0){
+      let nextManeuver = maneuvers[0]
+      let secondsToNextManeuver = (nextManeuver.time.getTime() - shipSimTime.getTime()) / 1000
+      if (secondsToNextManeuver > 0 && secondsToNextManeuver < simTimeIncrement) {
+        simTimeIncrement = secondsToNextManeuver
+      }
+    }
+
+    shipSimTime = new Date(shipSimTime.getTime() + simTimeIncrement*1000)
+
+    let shipRes = propagate(shipSim.position, shipSim.velocity, attractors, simTimeIncrement)
+    
+    shipSim.position = shipRes[0]
+    shipSim.velocity = shipRes[1]      
     
   }
   ship.lineMesh.geometry.setDrawRange(0, shipStepNumber)

@@ -332,17 +332,23 @@ function randomID(){
 // Maneuvers
 let maneuvers = [
   {
+    time: new Date(new Date().getTime() + 100 * 1000),
+    prograde: 100,
+    radial: 1000,
+    normal: 0
+  },
+  {
+    time: new Date(new Date().getTime() + 200 * 1000),
+    prograde: 0,
+    radial: 0,
+    normal: 1000
+  },
+  {
     time: new Date(new Date().getTime() + 2.5 * 60 * 60 * 1000),
     prograde: 100,
     radial: 0,
     normal: 0
   },
-  // {
-  //   time: new Date(new Date().getTime() + 200 * 1000),
-  //   prograde: 0,
-  //   radial: 0,
-  //   normal: 1000
-  // }  
 ]
 
 // Stampa elenco manovre
@@ -488,7 +494,6 @@ var render = function (actions) {
 
         // ship.velocity = ship.velocity.add(deltaV)
         maneuvers.splice(i, 1)
-        console.log('Applied deltaV', deltaV)
 
         let maneuverDiv = document.getElementById(id)
         maneuverDiv.classList.remove('maneuverToDo')
@@ -506,7 +511,7 @@ var render = function (actions) {
 
     // Disegna traiettorie propagate
     buildTrajectory(currentTime, ship, [earth], simStepNumber, simStepSize, maneuvers)
-    buildTrajectory(currentTime, moon, [earth], simStepNumber, simStepSize, [])
+    // buildTrajectory(currentTime, moon, [earth], simStepNumber, simStepSize, [])
     
     // Resetta tempo calcolo fisica
     sinceLastPhysicsCalc = 0;
