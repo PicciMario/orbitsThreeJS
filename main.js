@@ -306,8 +306,13 @@ function onDocumentMouseDown( event ) {
   raycaster.setFromCamera( mouse, camera );
   var intersects = raycaster.intersectObjects([ship.lineMesh]);
   if (intersects.length > 0){
-    console.log(intersects[0])
-    let point = intersects[0].point
+
+    // Punto di intersezione
+    let int = intersects.sort((a,b) => a.index - b.index)[0]
+    console.log(int)
+    let point = int.point
+
+    // Primo punto sulla traiettoria simulata (precedente)
     var pointGeometry = new THREE.SphereGeometry(100000 * scaleFactor, 50, 50 );
     var pointMaterial = new THREE.MeshPhongMaterial({
       color: 'lightgreen',
@@ -315,10 +320,37 @@ function onDocumentMouseDown( event ) {
       opacity: .8
     });
     let pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
-    pointMesh.position.x = point.x
-    pointMesh.position.y = point.y
-    pointMesh.position.z = point.z
+    // pointMesh.position.x = point.x
+    // pointMesh.position.y = point.y
+    // pointMesh.position.z = point.z
+    pointMesh.position.x = int.object.geometry.getAttribute('position').array[3*int.index]
+    pointMesh.position.y = int.object.geometry.getAttribute('position').array[3*int.index + 1]
+    pointMesh.position.z = int.object.geometry.getAttribute('position').array[3*int.index + 2]
+
     scene.add(pointMesh)
+
+    // Secondo punto sulla traiettoria simulata (successivo)
+    pointGeometry = new THREE.SphereGeometry(100000 * scaleFactor, 50, 50 );
+    var pointMaterial = new THREE.MeshPhongMaterial({
+      color: 'red',
+      transparent: true,
+      opacity: .8
+    });    
+    pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
+    // pointMesh.position.x = point.x
+    // pointMesh.position.y = point.y
+    // pointMesh.position.z = point.z
+    pointMesh.position.x = int.object.geometry.getAttribute('position').array[3*(int.index+1)]
+    pointMesh.position.y = int.object.geometry.getAttribute('position').array[3*(int.index+1) + 1]
+    pointMesh.position.z = int.object.geometry.getAttribute('position').array[3*(int.index+1) + 2]
+
+    scene.add(pointMesh)
+
+    // Devo capire la posizione del mio punto effettivo sulla traiettoria (int.point)
+    // come interpolazione dei due punti effettivamente calcolati (int.object)
+    // Ciascuno dei due punti deve avere un marker temporale, e io devo 
+    // calcolare il marker temporale della manovra
+
   }
 }
 

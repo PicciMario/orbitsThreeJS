@@ -95,6 +95,8 @@ export function buildTrajectory(currentTime, ship, attractors, simStepNumber, si
   let shipSim = ship.clone();
   let shipSimTime = currentTime;
   let shipStepNumber = 0;
+  let startingPoint = null
+  let effectiveSteps = simStepNumber
   for (let step = 0; step < simStepNumber; step++){
 
     shipStepNumber++;
@@ -111,7 +113,10 @@ export function buildTrajectory(currentTime, ship, attractors, simStepNumber, si
         collision = true;
       }    
     })  
-    if (collision) break;
+    if (collision) {
+      effectiveSteps = step
+      break;
+    }
    
     // Apply maneuvers
     simManeuvers.forEach(({time, prograde, radial, normal}, i) => {
@@ -151,8 +156,19 @@ export function buildTrajectory(currentTime, ship, attractors, simStepNumber, si
     shipSim.velocity = shipRes[1]      
     
   }
-  ship.lineMesh.geometry.setDrawRange(0, shipStepNumber)
+
+  let posArray = ship.lineMesh.geometry.getAttribute('position').array;	
+  for (let step = effectiveSteps; step < simStepNumber; step++){
+    posArray[step*3] = null;
+    posArray[step*3+1] = null;
+    posArray[step*3+2] = null;
+  }
+
+  ship.lineMesh.geometry.setDrawRange(0, effectiveSteps)
   ship.lineMesh.geometry.attributes.position.needsUpdate = true;		
+  ship.lineMesh.updateMatrixWorld();
+  ship.lineMesh.geometry.computeBoundingBox();
+  ship.lineMesh.geometry.computeBoundingSphere();
   ship.lineMesh.visible = true;	
 
 }
