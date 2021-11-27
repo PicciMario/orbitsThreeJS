@@ -296,60 +296,83 @@ let sinceLastPhysicsCalc = 0;
 // ----- debug prova raycaster --------------------------------------
 
 window.addEventListener('click', onDocumentMouseDown, false);
+
 var raycaster = new THREE.Raycaster();
 raycaster.linePrecision = 0.2;
-var mouse = new THREE.Vector2();
+
 function onDocumentMouseDown( event ) {
+
   event.preventDefault();
+
+  var mouse = new THREE.Vector2();
   mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
   mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
+
   raycaster.setFromCamera( mouse, camera );
+
   var intersects = raycaster.intersectObjects([ship.lineMesh]);
+
   if (intersects.length > 0){
 
-    // Punto di intersezione
+    // Punto di intersezione (quello con l'indice minore in caso di più punti sovrapposti)
     let int = intersects.sort((a,b) => a.index - b.index)[0]
     console.log(int)
     let point = int.point
 
-    // Primo punto sulla traiettoria simulata (precedente)
-    var pointGeometry = new THREE.SphereGeometry(100000 * scaleFactor, 50, 50 );
-    var pointMaterial = new THREE.MeshPhongMaterial({
-      color: 'lightgreen',
-      transparent: true,
-      opacity: .8
+    // Calcola istante manovra come interpolazione tra i due punti più vicini 
+    // trovati lungo la traiettoria simulata.
+
+    let meshPoints = int.object.geometry.getAttribute('position').array
+    let meshIndexLeft = int.index
+    let meshIndexRight = int.index + 1
+    let meshLeftX = meshPoints[3*meshIndexLeft]
+    let meshLeftY = meshPoints[3*meshIndexLeft + 1]
+    let meshLeftZ = meshPoints[3*meshIndexLeft + 2]
+    let meshRightX = meshPoints[3*meshIndexRight]
+    let meshRightY = meshPoints[3*meshIndexRight + 1]
+    let meshRightZ = meshPoints[3*meshIndexRight + 2]
+    let pointX = point.x
+    let pointY = point.y
+    let pointZ = point.z
+
+    let leftDist = Math.abs(Math.sqrt(
+      Math.pow(meshLeftX-pointX, 2)
+      + Math.pow(meshLeftY-pointY, 2)
+      + Math.pow(meshLeftZ-pointZ, 2)
+    ))
+    let rightDist = Math.abs(Math.sqrt(
+      Math.pow(meshRightX-pointX, 2)
+      + Math.pow(meshRightY-pointY, 2)
+      + Math.pow(meshRightZ-pointZ, 2)
+    ))    
+    let totDist = leftDist + rightDist;
+    let leftPerc = leftDist / totDist
+
+    let timeLeft = ship.meshTime[int.index]
+    let timeRight = ship.meshTime[int.index + 1]
+    let timeDelta = Math.abs(timeLeft - timeRight)
+    let timeManeuver = timeLeft + leftPerc*timeDelta
+
+    // Aggiunge manovra alla lista
+    maneuvers.push({
+      time: new Date(timeManeuver),
+      prograde: 0,
+      radial: 1000,
+      normal: 0
     });
-    let pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
-    // pointMesh.position.x = point.x
-    // pointMesh.position.y = point.y
-    // pointMesh.position.z = point.z
-    pointMesh.position.x = int.object.geometry.getAttribute('position').array[3*int.index]
-    pointMesh.position.y = int.object.geometry.getAttribute('position').array[3*int.index + 1]
-    pointMesh.position.z = int.object.geometry.getAttribute('position').array[3*int.index + 2]
 
-    scene.add(pointMesh)
-
-    // Secondo punto sulla traiettoria simulata (successivo)
-    pointGeometry = new THREE.SphereGeometry(100000 * scaleFactor, 50, 50 );
+    // Punto esatto raycaster (punto manovra)
+    let pointGeometry = new THREE.SphereGeometry(100000 * scaleFactor, 50, 50 );
     var pointMaterial = new THREE.MeshPhongMaterial({
-      color: 'red',
+      color: 'blue',
       transparent: true,
       opacity: .8
     });    
-    pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
-    // pointMesh.position.x = point.x
-    // pointMesh.position.y = point.y
-    // pointMesh.position.z = point.z
-    pointMesh.position.x = int.object.geometry.getAttribute('position').array[3*(int.index+1)]
-    pointMesh.position.y = int.object.geometry.getAttribute('position').array[3*(int.index+1) + 1]
-    pointMesh.position.z = int.object.geometry.getAttribute('position').array[3*(int.index+1) + 2]
-
-    scene.add(pointMesh)
-
-    // Devo capire la posizione del mio punto effettivo sulla traiettoria (int.point)
-    // come interpolazione dei due punti effettivamente calcolati (int.object)
-    // Ciascuno dei due punti deve avere un marker temporale, e io devo 
-    // calcolare il marker temporale della manovra
+    let pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
+    pointMesh.position.x = point.x
+    pointMesh.position.y = point.y
+    pointMesh.position.z = point.z
+    scene.add(pointMesh) 
 
   }
 }
@@ -528,8 +551,10 @@ var render = function (actions) {
         maneuvers.splice(i, 1)
 
         let maneuverDiv = document.getElementById(id)
-        maneuverDiv.classList.remove('maneuverToDo')
-        maneuverDiv.classList.add('maneuverDone')
+        if (maneuverDiv){
+          maneuverDiv.classList.remove('maneuverToDo')
+          maneuverDiv.classList.add('maneuverDone')
+        }
 
       }
     })

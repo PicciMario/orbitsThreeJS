@@ -4,22 +4,23 @@ export default class Body{
   
   constructor(name, mass, radius, SOIRadius){
     
-	  // Nome del corpo celeste
+    // Nome del corpo celeste
     this.name = name;
-	  // Massa [Kg]
+    // Massa [Kg]
     this.mass = mass;
-	  // Raggio medio [m]
+    // Raggio medio [m]
     this.radius = radius;
-	  // Raggio sfera influenza [m]
+    // Raggio sfera influenza [m]
     this.SOIRadius = SOIRadius;
     
-	  // Posizione [m, m, m]
+    // Posizione [m, m, m]
     this.position = new Vector();
-	  // Velocità [m^2, m^2, m^2]
+    // Velocità [m^2, m^2, m^2]
     this.velocity = new Vector();
     
     this.mesh = null;
-	  this.speedMesh = null;
+    this.meshTime = [];
+    this.speedMesh = null;
     this.lineMesh = null;
 
   }

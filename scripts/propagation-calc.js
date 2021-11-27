@@ -94,17 +94,14 @@ export function buildTrajectory(currentTime, ship, attractors, simStepNumber, si
   // Refresh orbit propagation
   let shipSim = ship.clone();
   let shipSimTime = currentTime;
-  let shipStepNumber = 0;
-  let startingPoint = null
   let effectiveSteps = simStepNumber
   for (let step = 0; step < simStepNumber; step++){
-
-    shipStepNumber++;
     
     let posArray = ship.lineMesh.geometry.getAttribute('position').array;	
     posArray[step*3] = shipSim.position.x*scaleFactor;
     posArray[step*3+1] = shipSim.position.y*scaleFactor;
     posArray[step*3+2] = shipSim.position.z*scaleFactor;
+    ship.meshTime[step] = shipSimTime.getTime();
 
     // Verifica collisioni
     let collision = false
@@ -138,25 +135,28 @@ export function buildTrajectory(currentTime, ship, attractors, simStepNumber, si
 
     })   
 
+    // Se una manovra accade tra questo step e il prossimo, modifica il prossimo
+    // step in modo tale da coincidere con la manovra (rende precisa la traiettoria 
+    // della simulazione a cavallo del momento della manovra stessa).
     let simTimeIncrement = simStepSize
-
     if (maneuvers.length > 0){
-      let nextManeuver = maneuvers[0]
+      let nextManeuver = maneuvers[0] // Le manovre sono già ordinate cronologicamente
       let secondsToNextManeuver = (nextManeuver.time.getTime() - shipSimTime.getTime()) / 1000
       if (secondsToNextManeuver > 0 && secondsToNextManeuver < simTimeIncrement) {
         simTimeIncrement = secondsToNextManeuver
       }
     }
 
+    // Propaga la posizione simulata al prossimo step
     shipSimTime = new Date(shipSimTime.getTime() + simTimeIncrement*1000)
-
     let shipRes = propagate(shipSim.position, shipSim.velocity, attractors, simTimeIncrement)
-    
     shipSim.position = shipRes[0]
     shipSim.velocity = shipRes[1]      
     
   }
 
+  // Azzera i punti inutilizzati della mesh
+  // (altrimenti fanno collisione con il raytracer anche se non renderizzati)
   let posArray = ship.lineMesh.geometry.getAttribute('position').array;	
   for (let step = effectiveSteps; step < simStepNumber; step++){
     posArray[step*3] = null;
@@ -164,6 +164,7 @@ export function buildTrajectory(currentTime, ship, attractors, simStepNumber, si
     posArray[step*3+2] = null;
   }
 
+  // Refresha la mesh
   ship.lineMesh.geometry.setDrawRange(0, effectiveSteps)
   ship.lineMesh.geometry.attributes.position.needsUpdate = true;		
   ship.lineMesh.updateMatrixWorld();
