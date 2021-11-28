@@ -354,12 +354,15 @@ function onDocumentMouseDown( event ) {
     let timeManeuver = timeLeft + leftPerc*timeDelta
 
     // Aggiunge manovra alla lista
-    maneuvers.push({
+    let newManeuver = {
+      id: randomID(),
       time: new Date(timeManeuver),
       prograde: 0,
       radial: 1000,
       normal: 0
-    });
+    }
+    maneuvers.push(newManeuver);
+    addManeuverToUI(newManeuver)
 
     // Punto esatto raycaster (punto manovra)
     let pointGeometry = new THREE.SphereGeometry(100000 * scaleFactor, 50, 50 );
@@ -383,7 +386,6 @@ function randomID(){
   return '_' + Math.random().toString(36).substr(2, 9);
 }
 
-
 // Maneuvers
 let maneuvers = [
   {
@@ -406,9 +408,11 @@ let maneuvers = [
   },
 ]
 
-// Stampa elenco manovre
-maneuvers.forEach(maneuver => maneuver['id'] = randomID())
-maneuvers.forEach(({time, id, prograde, radial, normal}) => {
+function addManeuverToUI(maneuver){
+
+  if (!maneuver.id) maneuver.id = randomID()
+
+  let {time, id, prograde, radial, normal} = maneuver
 
   let newDiv = document.getElementById('maneuver-prototype')
   newDiv = newDiv.cloneNode(true)
@@ -439,9 +443,22 @@ maneuvers.forEach(({time, id, prograde, radial, normal}) => {
     maneuvers.filter(man => man.id == id).forEach(man => man.prograde = man.prograde + 100)
   })  
 
-  document.getElementById('maneuvers').appendChild(newDiv)
+  document.getElementById('maneuvers').appendChild(newDiv)  
 
-})
+}
+
+function markManeuverUIAsDone(id){
+
+  let maneuverDiv = document.getElementById(id)
+  if (maneuverDiv){
+    maneuverDiv.classList.remove('maneuverToDo')
+    maneuverDiv.classList.add('maneuverDone')
+  }
+
+}
+
+// Stampa elenco manovre
+maneuvers.forEach(man => addManeuverToUI(man))
 
 // -----------------------------------------------------------------
 
@@ -550,11 +567,7 @@ var render = function (actions) {
         // ship.velocity = ship.velocity.add(deltaV)
         maneuvers.splice(i, 1)
 
-        let maneuverDiv = document.getElementById(id)
-        if (maneuverDiv){
-          maneuverDiv.classList.remove('maneuverToDo')
-          maneuverDiv.classList.add('maneuverDone')
-        }
+        markManeuverUIAsDone(id)
 
       }
     })
