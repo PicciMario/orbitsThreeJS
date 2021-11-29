@@ -9,6 +9,8 @@ import {orbitDraw} from './scripts/orbit-draw.js'
 import {propagate, buildTrajectory} from './scripts/propagation-calc.js'
 import {G, scaleFactor} from './scripts/constants.js'
 import {buildLineMesh, resizeRendererToDisplaySizeIfNeeded, setMeshPosition, createAxisLabel, alignToCamera} from './scripts/functions.js'
+import Maneuver from './scripts/maneuver.js'
+import {addManeuverToUI, markManeuverUIAsDone} from './scripts/maneuver.js'
 
 // --- Costanti ---------------------------------------------------------------
 
@@ -354,13 +356,12 @@ function onDocumentMouseDown( event ) {
     let timeManeuver = timeLeft + leftPerc*timeDelta
 
     // Aggiunge manovra alla lista
-    let newManeuver = {
-      id: randomID(),
-      time: new Date(timeManeuver),
-      prograde: 0,
-      radial: 1000,
-      normal: 0
-    }
+    let newManeuver = new Maneuver(
+      new Date(timeManeuver),
+      0,
+      1000,
+      0
+    );
     maneuvers.push(newManeuver);
     addManeuverToUI(newManeuver)
 
@@ -382,80 +383,15 @@ function onDocumentMouseDown( event ) {
 
 // -----------------------------------------------------------------
 
-function randomID(){
-  return '_' + Math.random().toString(36).substr(2, 9);
-}
-
 // Maneuvers
 let maneuvers = [
-  {
-    time: new Date(new Date().getTime() + 100 * 1000),
-    prograde: 100,
-    radial: 1000,
-    normal: 0
-  },
-  {
-    time: new Date(new Date().getTime() + 200 * 1000),
-    prograde: 0,
-    radial: 0,
-    normal: 1000
-  },
-  {
-    time: new Date(new Date().getTime() + 2.5 * 60 * 60 * 1000),
-    prograde: 100,
-    radial: 0,
-    normal: 0
-  },
+  new Maneuver(
+    new Date(new Date().getTime() + 100 * 1000),
+    100,
+    1000,
+    0
+  )
 ]
-
-function addManeuverToUI(maneuver){
-
-  if (!maneuver.id) maneuver.id = randomID()
-
-  let {time, id, prograde, radial, normal} = maneuver
-
-  let newDiv = document.getElementById('maneuver-prototype')
-  newDiv = newDiv.cloneNode(true)
-  newDiv.id = id
-  newDiv.classList.remove('hidden')
-  newDiv.classList.add('maneuverToDo')
-
-  let label = newDiv.getElementsByClassName("maneuver-label")[0]
-  label.innerHTML = new Date(time).toLocaleString() 
-
-  let labelPro = newDiv.getElementsByClassName("maneuver-prograde")[0]
-  labelPro.innerHTML = prograde
-
-  let labelRad = newDiv.getElementsByClassName("maneuver-radial")[0]
-  labelRad.innerHTML = radial
-
-  let labelNorm = newDiv.getElementsByClassName("maneuver-normal")[0]
-  labelNorm.innerHTML = normal
-
-  let button = newDiv.getElementsByClassName("maneuver-button")[0]
-  button.addEventListener("click", function() {
-    maneuvers = maneuvers.filter(man => man.id !== id)
-    document.getElementById(id).remove()
-  })
-
-  let buttonAddPro = newDiv.getElementsByClassName("maneuver-add-prograde")[0]
-  buttonAddPro.addEventListener("click", function() {
-    maneuvers.filter(man => man.id == id).forEach(man => man.prograde = man.prograde + 100)
-  })  
-
-  document.getElementById('maneuvers').appendChild(newDiv)  
-
-}
-
-function markManeuverUIAsDone(id){
-
-  let maneuverDiv = document.getElementById(id)
-  if (maneuverDiv){
-    maneuverDiv.classList.remove('maneuverToDo')
-    maneuverDiv.classList.add('maneuverDone')
-  }
-
-}
 
 // Stampa elenco manovre
 maneuvers.forEach(man => addManeuverToUI(man))
@@ -552,7 +488,10 @@ var render = function (actions) {
   if (sinceLastPhysicsCalc > phisicsCalcStep){
 
     // Apply maneuvers
-    maneuvers.forEach(({time, deltaV, id, prograde, radial, normal}, i) => {
+    maneuvers.forEach((man, i) => {
+
+      let {time, prograde, radial, normal} = man
+
       if (currentTime >= time){
 
         let velVector = ship.velocity.norm()
@@ -564,10 +503,9 @@ var render = function (actions) {
           .add(radVector.scale(radial))
           .add(normVector.scale(normal))
 
-        // ship.velocity = ship.velocity.add(deltaV)
         maneuvers.splice(i, 1)
 
-        markManeuverUIAsDone(id)
+        markManeuverUIAsDone(man)
 
       }
     })
