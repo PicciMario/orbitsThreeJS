@@ -8,9 +8,13 @@ import {orbitalCalcBody} from './scripts/orbit-calc.js'
 import {orbitDraw} from './scripts/orbit-draw.js'
 import {propagate, buildTrajectory} from './scripts/propagation-calc.js'
 import {G, scaleFactor} from './scripts/constants.js'
-import {buildLineMesh, resizeRendererToDisplaySizeIfNeeded, setMeshPosition, createAxisLabel, alignToCamera} from './scripts/functions.js'
-import Maneuver from './scripts/maneuver.js'
-import {addManeuverToUI, markManeuverUIAsDone} from './scripts/maneuver.js'
+import {
+  buildLineMesh, resizeRendererToDisplaySizeIfNeeded, setMeshPosition, 
+  createAxisLabel, alignToCamera, refreshOrbitalParamsUI,
+  calcManeuverTimeFromIntersection, refreshTimeUI
+} from './scripts/functions.js'
+import Maneuver, { addManeuver } from './scripts/maneuver.js'
+import {markManeuverUIAsDone} from './scripts/maneuver.js'
 
 // --- Costanti ---------------------------------------------------------------
 
@@ -295,7 +299,7 @@ let lastIteration = Date.now();
 let spentTime = 0;
 let sinceLastPhysicsCalc = 0;
 
-// ----- debug prova raycaster --------------------------------------
+// ----- Creazione manovra ----------------------------------------------------
 
 window.addEventListener('click', onDocumentMouseDown, false);
 
@@ -318,52 +322,19 @@ function onDocumentMouseDown( event ) {
 
     // Punto di intersezione (quello con l'indice minore in caso di più punti sovrapposti)
     let int = intersects.sort((a,b) => a.index - b.index)[0]
-    console.log(int)
-    let point = int.point
 
     // Calcola istante manovra come interpolazione tra i due punti più vicini 
     // trovati lungo la traiettoria simulata.
-
-    let meshPoints = int.object.geometry.getAttribute('position').array
-    let meshIndexLeft = int.index
-    let meshIndexRight = int.index + 1
-    let meshLeftX = meshPoints[3*meshIndexLeft]
-    let meshLeftY = meshPoints[3*meshIndexLeft + 1]
-    let meshLeftZ = meshPoints[3*meshIndexLeft + 2]
-    let meshRightX = meshPoints[3*meshIndexRight]
-    let meshRightY = meshPoints[3*meshIndexRight + 1]
-    let meshRightZ = meshPoints[3*meshIndexRight + 2]
-    let pointX = point.x
-    let pointY = point.y
-    let pointZ = point.z
-
-    let leftDist = Math.abs(Math.sqrt(
-      Math.pow(meshLeftX-pointX, 2)
-      + Math.pow(meshLeftY-pointY, 2)
-      + Math.pow(meshLeftZ-pointZ, 2)
-    ))
-    let rightDist = Math.abs(Math.sqrt(
-      Math.pow(meshRightX-pointX, 2)
-      + Math.pow(meshRightY-pointY, 2)
-      + Math.pow(meshRightZ-pointZ, 2)
-    ))    
-    let totDist = leftDist + rightDist;
-    let leftPerc = leftDist / totDist
-
-    let timeLeft = ship.meshTime[int.index]
-    let timeRight = ship.meshTime[int.index + 1]
-    let timeDelta = Math.abs(timeLeft - timeRight)
-    let timeManeuver = timeLeft + leftPerc*timeDelta
+    let timeManeuver = calcManeuverTimeFromIntersection(int, ship.meshTime)
 
     // Aggiunge manovra alla lista
     let newManeuver = new Maneuver(
       new Date(timeManeuver),
-      0,
       1000,
+      0,
       0
     );
-    maneuvers.push(newManeuver);
-    addManeuverToUI(newManeuver)
+    addManeuver(newManeuver, maneuvers)
 
     // Punto esatto raycaster (punto manovra)
     let pointGeometry = new THREE.SphereGeometry(100000 * scaleFactor, 50, 50 );
@@ -373,6 +344,7 @@ function onDocumentMouseDown( event ) {
       opacity: .8
     });    
     let pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
+    let point = int.point
     pointMesh.position.x = point.x
     pointMesh.position.y = point.y
     pointMesh.position.z = point.z
@@ -383,47 +355,19 @@ function onDocumentMouseDown( event ) {
 
 // -----------------------------------------------------------------
 
-// Maneuvers
-let maneuvers = [
+// Lista globale manovre
+var maneuvers = []
+
+// Manovre di test
+let newManeuvers = [
   new Maneuver(
     new Date(new Date().getTime() + 100 * 1000),
     100,
     1000,
     0
-  )
+  )  
 ]
-
-// Stampa elenco manovre
-maneuvers.forEach(man => addManeuverToUI(man))
-
-// -----------------------------------------------------------------
-
-// Refresh orbital parameters div
-function refreshOrbitalParamsUI(calcOrbit){
-
-  let orbitalParamsListUI = [
-    {div: 'specificEnergyDiv', 	label: 'Spec. Energy', 	unit: 'KJ/Kg', 	val: calcOrbit.specificEnergy/1000},
-    {div: 'semimajAxisDiv', 	  label: 'Sma', 			    unit: 'km', 	  val: calcOrbit.semiMajorAxis/1000},
-    {div: 'eccDiv', 			      label: 'Ecc', 			    unit: '', 		  val: calcOrbit.eccentricity},
-    {div: 'apoDiv', 			      label: 'ApD', 			    unit: 'km', 	  val: (calcOrbit.rApoapsis - calcOrbit.centreBody.radius)/1000},
-    {div: 'perDiv', 			      label: 'PeD', 			    unit: 'km', 	  val: (calcOrbit.rPeriapsis - calcOrbit.centreBody.radius)/1000},
-    {div: 'periodoDiv', 	      label: 'T', 			      unit: 'h', 		  val: calcOrbit.period/36000},
-    {div: 'incl', 				      label: 'Incl:', 		    unit: 'deg', 	  val: calcOrbit.inclination * 180 / Math.PI},
-    {div: 'longAsc', 			      label: 'LonAsc',	 	    unit: 'deg', 	  val: calcOrbit.longAscNode * 180 / Math.PI},
-    {div: 'argPer', 			      label: 'Arg.per', 		  unit: 'deg', 	  val: calcOrbit.argPeriapsis * 180 / Math.PI},
-    {div: 'vApo', 				      label: 'ApV', 			    unit: 'm/s', 	  val: calcOrbit.vApoapsis},
-    {div: 'vPer', 				      label: 'PeV', 			    unit: 'm/s', 	  val: calcOrbit.vPeriapsis},
-    {div: 'vCur', 				      label: 'v', 			      unit: 'm/s', 	  val: calcOrbit.orbitingBody.velocity.module()},
-    {div: 'rCur', 				      label: 'r', 			      unit: 'km', 	  val: calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() / 1000},
-    {div: 'dCur', 				      label: 'h', 			      unit: 'km', 	  val: (calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() - calcOrbit.centreBody.radius) / 1000},
-    {div: 'trueAn', 			      label: 'True an.',    	unit: 'deg.', 	val: calcOrbit.trueAnomaly*180/Math.PI},
-  ]
-
-  orbitalParamsListUI.forEach(({div, label, unit, val}) => {
-    document.getElementById(div).innerHTML = `${label}: ${val.toLocaleString(undefined, {maximumFractionDigits:2})} ${unit}`
-  })
-
-}
+newManeuvers.forEach(man => addManeuver(man, maneuvers))
 
 // -----------------------------------------------------------------
 
@@ -450,11 +394,14 @@ document.getElementById('timeDiv').getElementsByClassName('timeDiv-decTimeAcc')[
 let calcOrbitMoon = orbitalCalcBody(moon, earth)
 orbitDraw(calcOrbitMoon, moonOrbitSim, angleSteps, scaleFactor)  
 
+// -----------------------------------------------------------------
+
+// Timer principale dei calcoli fisici
+
 setInterval(() => {
 
   currentTime = new Date(currentTime.getTime() + timeStep * 1000 * timeSpeed)
-  document.getElementById('timeDiv').getElementsByClassName('timeDiv-currTime')[0].innerHTML = currentTime.toLocaleString()
-  document.getElementById('timeDiv').getElementsByClassName('timeDiv-timeAcc')[0].innerHTML = timeSpeed
+  refreshTimeUI(currentTime, timeSpeed)
 
   // Rotate earth
   earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * 300;  
@@ -471,8 +418,11 @@ setInterval(() => {
   moon.velocity = moonVelocity
   setMeshPosition(moon);	
 
-}, 300)
+}, timeStep*1000)
 
+// -----------------------------------------------------------------
+
+// Funzione di rendering
 
 var render = function (actions) {
   
@@ -519,7 +469,6 @@ var render = function (actions) {
 
     // Disegna traiettorie propagate
     buildTrajectory(currentTime, ship, [earth], simStepNumber, simStepSize, maneuvers)
-    // buildTrajectory(currentTime, moon, [earth], simStepNumber, simStepSize, [])
     
     // Resetta tempo calcolo fisica
     sinceLastPhysicsCalc = 0;

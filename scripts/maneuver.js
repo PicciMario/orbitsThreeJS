@@ -18,9 +18,12 @@ function randomID(){
 
 /**
  * Add maneuver to UI.
- * @param {Maneuver} maneuver 
+ * @param {Maneuver} maneuver
+ * @param {Maneuver[]} maneuvers 
  */
-export function addManeuverToUI(maneuver){
+export function addManeuver(maneuver, maneuvers){
+
+	maneuvers.push(maneuver);
 
 	let {time, id, prograde, radial, normal} = maneuver
   

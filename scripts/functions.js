@@ -131,3 +131,80 @@ export function alignToCamera(item, camera){
     item.rotation.z = camera.rotation.z;
   }
 }
+
+// ----------------------------------------------------------------------------
+
+// Refresh orbital parameters div
+export function refreshOrbitalParamsUI(calcOrbit){
+
+  let orbitalParamsListUI = [
+    {div: 'specificEnergyDiv', 	label: 'Spec. Energy', 	unit: 'KJ/Kg', 	val: calcOrbit.specificEnergy/1000},
+    {div: 'semimajAxisDiv', 	  label: 'Sma', 			    unit: 'km', 	  val: calcOrbit.semiMajorAxis/1000},
+    {div: 'eccDiv', 			      label: 'Ecc', 			    unit: '', 		  val: calcOrbit.eccentricity},
+    {div: 'apoDiv', 			      label: 'ApD', 			    unit: 'km', 	  val: (calcOrbit.rApoapsis - calcOrbit.centreBody.radius)/1000},
+    {div: 'perDiv', 			      label: 'PeD', 			    unit: 'km', 	  val: (calcOrbit.rPeriapsis - calcOrbit.centreBody.radius)/1000},
+    {div: 'periodoDiv', 	      label: 'T', 			      unit: 'h', 		  val: calcOrbit.period/36000},
+    {div: 'incl', 				      label: 'Incl:', 		    unit: 'deg', 	  val: calcOrbit.inclination * 180 / Math.PI},
+    {div: 'longAsc', 			      label: 'LonAsc',	 	    unit: 'deg', 	  val: calcOrbit.longAscNode * 180 / Math.PI},
+    {div: 'argPer', 			      label: 'Arg.per', 		  unit: 'deg', 	  val: calcOrbit.argPeriapsis * 180 / Math.PI},
+    {div: 'vApo', 				      label: 'ApV', 			    unit: 'm/s', 	  val: calcOrbit.vApoapsis},
+    {div: 'vPer', 				      label: 'PeV', 			    unit: 'm/s', 	  val: calcOrbit.vPeriapsis},
+    {div: 'vCur', 				      label: 'v', 			      unit: 'm/s', 	  val: calcOrbit.orbitingBody.velocity.module()},
+    {div: 'rCur', 				      label: 'r', 			      unit: 'km', 	  val: calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() / 1000},
+    {div: 'dCur', 				      label: 'h', 			      unit: 'km', 	  val: (calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() - calcOrbit.centreBody.radius) / 1000},
+    {div: 'trueAn', 			      label: 'True an.',    	unit: 'deg.', 	val: calcOrbit.trueAnomaly*180/Math.PI},
+  ]
+
+  orbitalParamsListUI.forEach(({div, label, unit, val}) => {
+    document.getElementById(div).innerHTML = `${label}: ${val.toLocaleString(undefined, {maximumFractionDigits:2})} ${unit}`
+  })
+
+}
+
+export function refreshTimeUI(currentTime, timeSpeed){
+  document.getElementById('timeDiv').getElementsByClassName('timeDiv-currTime')[0].innerHTML = currentTime.toLocaleString()
+  document.getElementById('timeDiv').getElementsByClassName('timeDiv-timeAcc')[0].innerHTML = timeSpeed  
+}
+
+// ----------------------------------------------------------------------------
+
+// Calcola istante manovra come interpolazione tra i due punti più vicini 
+// trovati lungo la traiettoria simulata.
+export function calcManeuverTimeFromIntersection(int, meshTime){
+
+  let point = int.point
+
+  let meshPoints = int.object.geometry.getAttribute('position').array
+  let meshIndexLeft = int.index
+  let meshIndexRight = int.index + 1
+  let meshLeftX = meshPoints[3*meshIndexLeft]
+  let meshLeftY = meshPoints[3*meshIndexLeft + 1]
+  let meshLeftZ = meshPoints[3*meshIndexLeft + 2]
+  let meshRightX = meshPoints[3*meshIndexRight]
+  let meshRightY = meshPoints[3*meshIndexRight + 1]
+  let meshRightZ = meshPoints[3*meshIndexRight + 2]
+  let pointX = point.x
+  let pointY = point.y
+  let pointZ = point.z
+
+  let leftDist = Math.abs(Math.sqrt(
+    Math.pow(meshLeftX-pointX, 2)
+    + Math.pow(meshLeftY-pointY, 2)
+    + Math.pow(meshLeftZ-pointZ, 2)
+  ))
+  let rightDist = Math.abs(Math.sqrt(
+    Math.pow(meshRightX-pointX, 2)
+    + Math.pow(meshRightY-pointY, 2)
+    + Math.pow(meshRightZ-pointZ, 2)
+  ))    
+  let totDist = leftDist + rightDist;
+  let leftPerc = leftDist / totDist
+
+  let timeLeft = meshTime[int.index]
+  let timeRight = meshTime[int.index + 1]
+  let timeDelta = Math.abs(timeLeft - timeRight)
+  let timeManeuver = timeLeft + leftPerc*timeDelta 
+  
+  return timeManeuver;
+
+}
