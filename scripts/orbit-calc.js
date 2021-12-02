@@ -50,8 +50,8 @@ export function orbitalCalcBody(orbitingBody, centreBody){
   let n = new Vector(0, 1, 0).cross(h)
   // Longitude of ascending node
   let longAscNode = Math.acos(n.x / n.module())
-  if (n.z < 0) longAscNode = 2*Math.PI - longAscNode
-  if (isNaN(longAscNode)) longAscNode = 0
+  if (n.z < 0) longAscNode = 2*Math.PI - longAscNode  
+  //if (isNaN(longAscNode)) longAscNode = 0
 
   // Eccentricity vector
   let eccVector = velocity
@@ -63,6 +63,11 @@ export function orbitalCalcBody(orbitingBody, centreBody){
   let argPeriapsis = Math.acos(n.dot(eccVector)/(n.module() * eccVector.module()))
   if (eccVector.y < 0) argPeriapsis = 2*Math.PI - argPeriapsis
   if (isNaN(argPeriapsis)) argPeriapsis = 0
+  if (inclination == 0 || inclination == Math.PI){
+    argPeriapsis = Math.acos(eccVector.x / eccVector.module())
+    console.log(eccVector.x)
+    if (eccVector.x < 0) argPeriapsis = 2*Math.PI - argPeriapsis
+  }
 
   // Velocità
   let vApoapsis = Math.sqrt(G * M * ((2/rApoapsis)-(1/semiMajorAxis)))
@@ -74,7 +79,7 @@ export function orbitalCalcBody(orbitingBody, centreBody){
     trueAnomaly = 2 * Math.PI - trueAnomaly
   }
 
-  return({
+  let state = {
     
     v_0,
     r_0,
@@ -97,6 +102,8 @@ export function orbitalCalcBody(orbitingBody, centreBody){
     orbitingBody, 
     centreBody    
 
-  })
+  }
+
+  return state;
 
 }

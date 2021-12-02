@@ -13,8 +13,7 @@ import {
   createAxisLabel, alignToCamera, refreshOrbitalParamsUI,
   calcManeuverTimeFromIntersection, refreshTimeUI
 } from './scripts/functions.js'
-import Maneuver, { addManeuver } from './scripts/maneuver.js'
-import {markManeuverUIAsDone} from './scripts/maneuver.js'
+import Maneuver from './scripts/maneuver.js'
 
 // --- Costanti ---------------------------------------------------------------
 
@@ -24,6 +23,15 @@ const phisicsCalcStep = 300
 const simStepSize = 100;
 // Numero step simulazione propagazione
 const simStepNumber = 10000;
+
+// --- Variabili --------------------------------------------------------------
+
+// Timekeeping simulazione
+let currentTime = new Date()
+// Simulation step in seconds
+let timeStep = .3
+// Moltiplicatore velocità simulazione
+let timeSpeed = 10
 
 // --- Inizializzazione elementi fissi ----------------------------------------
 
@@ -211,7 +219,12 @@ let orbitTests = [
     desc: 'Eq. Circ.',
     position: earth.calcSatellitePosition(400e3, 0, 0),
     velocity: new Vector(-7670, 0, 0)    
-  }  
+  },
+  {
+    desc: 'Eq. Circ. Pro.',
+    position: earth.calcSatellitePosition(400e3, 0, 0),
+    velocity: new Vector(7670, 0, 0)    
+  }   
 ]
 
 orbitTests.forEach(({desc, position, velocity}, i) => {
@@ -260,6 +273,73 @@ function drawVector(start, vector, color = "yellow"){
 
 }
 
+class Arrow{
+
+  constructor(text, color, scene){
+
+    const lineMat = new THREE.LineBasicMaterial( { color: color } );
+
+    const linePoints = [];  
+    linePoints.push( new THREE.Vector3(0,0,0));
+    linePoints.push( new THREE.Vector3(0,0,0));
+  
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints( linePoints );	
+    
+    this.lineMesh = new THREE.Line( lineGeometry, lineMat );
+  
+    scene.add(this.lineMesh)	
+
+    loader.load( 'fonts/helvetiker_regular.typeface.json', (font) => {
+
+      const xGeo = new THREE.TextGeometry( text, {
+        font: font,
+        size: .3,
+        height: .01,
+        curveSegments: 6,
+      });
+    
+      let xMaterial = new THREE.MeshBasicMaterial({ color: color });
+      this.xText = new THREE.Mesh(xGeo , xMaterial);
+
+      scene.add(this.xText)
+
+    })
+  
+  }
+
+  setStart(position){
+    let posArray = this.lineMesh.geometry.getAttribute('position').array;
+    posArray[0] = position.x;
+    posArray[1] = position.y;
+    posArray[2] = position.z;
+    this.lineMesh.geometry.attributes.position.needsUpdate = true;		
+  }
+
+  setEnd(position){
+
+    let posArray = this.lineMesh.geometry.getAttribute('position').array;
+    posArray[3] = position.x;
+    posArray[4] = position.y;
+    posArray[5] = position.z;
+    this.lineMesh.geometry.attributes.position.needsUpdate = true;
+    
+    this.xText.position.x = position.x
+    this.xText.position.y = position.y
+    this.xText.position.z = position.z
+
+  }  
+
+  refresh(camera){
+    if (this.xText && camera){
+      this.xText.rotation.x = camera.rotation.x;
+      this.xText.rotation.y = camera.rotation.y;
+      this.xText.rotation.z = camera.rotation.z;
+    }    
+  }
+
+
+}
+
 // ----------------------------------------------------------------------------
 
 // let simData = {
@@ -291,13 +371,6 @@ scene.add(orbitSim)
 
 let moonOrbitSim = buildLineMesh(angleSteps, 'yellow', true)
 scene.add(moonOrbitSim)
-
-// ----------------------------------------------------------------------------
-
-// Variabili per timekeeping (inizializzazione)
-let lastIteration = Date.now();
-let spentTime = 0;
-let sinceLastPhysicsCalc = 0;
 
 // ----- Creazione manovra ----------------------------------------------------
 
@@ -360,26 +433,78 @@ var maneuvers = []
 
 // Manovre di test
 let newManeuvers = [
-  new Maneuver(
-    new Date(new Date().getTime() + 100 * 1000),
-    100,
-    1000,
-    0
-  )  
+  // new Maneuver(
+  //   new Date(new Date().getTime() + 100 * 1000),
+  //   100,
+  //   1000,
+  //   0
+  // )  
 ]
-newManeuvers.forEach(man => addManeuver(man, maneuvers))
+newManeuvers.forEach(man => addManeuver(man))
+
+/**
+ * Add maneuver to UI.
+ * @param {Maneuver} maneuver
+ * @param {Maneuver[]} maneuvers 
+ */
+ export function addManeuver(maneuver){
+
+	maneuvers.push(maneuver);
+
+	let {time, id, prograde, radial, normal} = maneuver
+  
+	let newDiv = document.getElementById('maneuver-prototype')
+	newDiv = newDiv.cloneNode(true)
+	newDiv.id = id
+	newDiv.classList.remove('hidden')
+	newDiv.classList.add('maneuverToDo')
+  
+	let label = newDiv.getElementsByClassName("maneuver-label")[0]
+	label.innerHTML = new Date(time).toLocaleString() 
+  
+	let labelPro = newDiv.getElementsByClassName("maneuver-prograde")[0]
+	labelPro.innerHTML = prograde
+  
+	let labelRad = newDiv.getElementsByClassName("maneuver-radial")[0]
+	labelRad.innerHTML = radial
+  
+	let labelNorm = newDiv.getElementsByClassName("maneuver-normal")[0]
+	labelNorm.innerHTML = normal
+  
+	let button = newDiv.getElementsByClassName("maneuver-button")[0]
+	button.addEventListener("click", function() {
+	  maneuvers = maneuvers.filter(man => man.id !== id)
+	  document.getElementById(id).remove()
+	})
+  
+	let buttonAddPro = newDiv.getElementsByClassName("maneuver-add-prograde")[0]
+	buttonAddPro.addEventListener("click", function() {
+	  maneuvers.filter(man => man.id == id).forEach(man => man.prograde = man.prograde + 100)
+	})  
+  
+	document.getElementById('maneuvers').appendChild(newDiv)  
+  
+  }
+  
+  /**
+   * Mark maneuver as done in UI.
+   * @param {Maneuver} maneuver
+   */
+  export function markManeuverUIAsDone(maneuver){
+
+	let {id} = maneuver
+  
+	let maneuverDiv = document.getElementById(id)
+	if (maneuverDiv){
+	  maneuverDiv.classList.remove('maneuverToDo')
+	  maneuverDiv.classList.add('maneuverDone')
+	}
+  
+}
 
 // -----------------------------------------------------------------
 
-// Timekeeping simulazione
-
-let currentTime = new Date()
-
-// Simulation step in seconds
-let timeStep = .3
-
-// Moltiplicatore velocità simulazione
-let timeSpeed = 10
+// Timekeeping
 
 document.getElementById('timeDiv').getElementsByClassName('timeDiv-incTimeAcc')[0].addEventListener("click", event => {
   timeSpeed = Math.min(timeSpeed * 10, 10000)
@@ -422,7 +547,16 @@ setInterval(() => {
 
 // -----------------------------------------------------------------
 
+// Vettori debug
+let eccArrow = new Arrow("ecc", "yellow", scene)
+let periArrow = new Arrow("peri", "orange", scene)
+
 // Funzione di rendering
+
+// Variabili per timekeeping (inizializzazione)
+let lastIteration = Date.now();
+let spentTime = 0;
+let sinceLastPhysicsCalc = 0;
 
 var render = function (actions) {
   
@@ -463,6 +597,16 @@ var render = function (actions) {
     // Calcola e disegna orbita simulata
     let calcOrbit = orbitalCalcBody(ship, earth)
     orbitDraw(calcOrbit, orbitSim, angleSteps, scaleFactor)
+
+    // vettori debug
+    eccArrow.setEnd(calcOrbit.eccVector.norm().scale(15))
+    eccArrow.refresh(camera)
+    periArrow.setEnd(new Vector(
+      Math.cos(calcOrbit.argPeriapsis),
+      0,
+      Math.sin(calcOrbit.argPeriapsis),
+    ).norm().scale(15))
+    periArrow.refresh(camera)
 
     // Aggiorna parametri orbita simulata e stato corrente su UI
     refreshOrbitalParamsUI(calcOrbit)

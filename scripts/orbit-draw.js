@@ -1,5 +1,6 @@
 import * as THREE from '../build/three.module.js'
 import {scaleFactor} from './constants.js'
+import Vector from './vector.js'
 
 export function orbitDraw(calcOrbit, orbitSim, angleSteps){
 
@@ -41,11 +42,25 @@ export function orbitDraw(calcOrbit, orbitSim, angleSteps){
   orbitSim.rotation.z = 0
 
   // Apply longitude of ascending node
-  orbitSim.rotateOnAxis(new THREE.Vector3(0,1,0).normalize(), -longAscNode)
+  if (longAscNode){
+    orbitSim.rotateOnAxis(new THREE.Vector3(0,1,0).normalize(), -longAscNode)
+  }
 
   // Apply argument of periapsis
-  let eccVectorPerp = calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).cross(calcOrbit.orbitingBody.velocity).norm()
-  orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), argPeriapsis)
+  // Se orbita equatoriale (inclinazione 0 o 180), il valore è in realtà la 
+  // longitudine del periapside.
+  if (calcOrbit.inclination == 0){
+    let eccVectorPerp = new Vector(0,-1,0)
+    orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), argPeriapsis)
+  }
+  else if (calcOrbit.inclination == Math.PI){
+    let eccVectorPerp = new Vector(0,1,0)
+    orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), argPeriapsis)    
+  }
+  else{
+    let eccVectorPerp = calcOrbit.eccVector.cross(calcOrbit.orbitingBody.velocity).norm()
+    orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), argPeriapsis)
+  }
 
   // Apply inclination
   orbitSim.rotateOnWorldAxis(eccVector.norm().toTHREEVector3(), inclination)	
