@@ -7,13 +7,18 @@
   <meta name='viewport' content='width=device-width, initial-scale=1'>
   <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
   <script type="module" src='main.js'></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo&display=swap" rel="stylesheet">
+
 </head>
 <body>
 
   	<canvas id="c"></canvas>
 
-  	<div id="textDiv">
-		According to Earth orbit:
+  	<div id="textDiv" class="uiDiv">
+		<div class="title">According to Earth orbit:</div>
   		<div id="specificEnergyDiv"></div>
   		<div id="semimajAxisDiv"></div>
   		<div id="eccDiv"></div>
@@ -25,16 +30,16 @@
   		<div id="perDiv"></div>
   		<div id="vPer"></div>
   		<div id="periodoDiv"></div>
-		Current:
+		<div class="title">Current:</div>
 		<div id="vCur"></div>
 		<div id="rCur"></div>
 		<div id="dCur"></div>
 		<div id="trueAn"></div>
 	</div>
 
-	<div id="orbitsSelector"></div>
+	<div id="orbitsSelector" class="uiDiv"></div>
 
-	<div id="maneuvers">
+	<div id="maneuvers" class="uiDiv">
 		<div>Next maneuvers:</div>
 		<div id='maneuver-prototype' class='hidden'>
 			<button class='maneuver-button'>X</button>
@@ -49,11 +54,13 @@
 		</div>
 	</div>
 
-	<div id="timeDiv">
-		<span class="timeDiv-currTime"></span>
-		<span class="timeDiv-timeAcc"></span>
-		<button class="timeDiv-incTimeAcc">+</button>
-		<button class="timeDiv-decTimeAcc">-</button>
+	<div id="timeDiv" class="uiDiv">
+		<div id="timeDiv-currTime"></div>
+		<div id="timeDiv-speed">
+			<button class="timeDiv-decTimeAcc uiButton">-</button>
+			<div id="timeDiv-timeAcc"></div>
+			<button class="timeDiv-incTimeAcc uiButton">+</button>
+		</div>
 	</div>
 
 </body>

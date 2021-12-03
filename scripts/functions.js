@@ -162,8 +162,8 @@ export function refreshOrbitalParamsUI(calcOrbit){
 }
 
 export function refreshTimeUI(currentTime, timeSpeed){
-  document.getElementById('timeDiv').getElementsByClassName('timeDiv-currTime')[0].innerHTML = currentTime.toLocaleString()
-  document.getElementById('timeDiv').getElementsByClassName('timeDiv-timeAcc')[0].innerHTML = timeSpeed  
+  document.getElementById('timeDiv-currTime').innerHTML = currentTime.toLocaleString()
+  document.getElementById('timeDiv-timeAcc').innerHTML = timeSpeed  
 }
 
 // ----------------------------------------------------------------------------

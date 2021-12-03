@@ -84,17 +84,17 @@ scene.add(starField);
 
 // Axes helper ----------------------------------------------------------------
 
-var axis = new THREE.AxesHelper(30);
+var axis = new THREE.AxesHelper(15);
 scene.add(axis);
 
 const loader = new THREE.FontLoader();
 var xLabel, yLabel, zLabel
 loader.load( 'fonts/helvetiker_regular.typeface.json', function(font){
-  xLabel = createAxisLabel('X', font, 30, 0, 0, 'red')
+  xLabel = createAxisLabel('X', font, 15, 0, 0, 'red')
   scene.add(xLabel)
-  yLabel = createAxisLabel('Y', font, 0, 30, 0, 'green')
+  yLabel = createAxisLabel('Y', font, 0, 15, 0, 'green')
   scene.add(yLabel)
-  zLabel = createAxisLabel('Z', font, 0, 0, 30, 'blue')
+  zLabel = createAxisLabel('Z', font, 0, 0, 15, 'blue')
   scene.add(zLabel)
 });
         
