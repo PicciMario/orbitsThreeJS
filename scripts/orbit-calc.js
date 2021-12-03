@@ -66,7 +66,7 @@ export function orbitalCalcBody(orbitingBody, centreBody){
   if (inclination == 0 || inclination == Math.PI){
     argPeriapsis = Math.acos(eccVector.x / eccVector.module())
     console.log(eccVector.x)
-    if (eccVector.x < 0) argPeriapsis = 2*Math.PI - argPeriapsis
+    if (eccVector.z < 0) argPeriapsis = 2*Math.PI - argPeriapsis
   }
 
   // Velocità

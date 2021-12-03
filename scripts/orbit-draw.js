@@ -49,13 +49,9 @@ export function orbitDraw(calcOrbit, orbitSim, angleSteps){
   // Apply argument of periapsis
   // Se orbita equatoriale (inclinazione 0 o 180), il valore è in realtà la 
   // longitudine del periapside.
-  if (calcOrbit.inclination == 0){
+  if (calcOrbit.inclination == 0 || calcOrbit.inclination == Math.PI){
     let eccVectorPerp = new Vector(0,-1,0)
     orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), argPeriapsis)
-  }
-  else if (calcOrbit.inclination == Math.PI){
-    let eccVectorPerp = new Vector(0,1,0)
-    orbitSim.rotateOnWorldAxis(eccVectorPerp.toTHREEVector3(), argPeriapsis)    
   }
   else{
     let eccVectorPerp = calcOrbit.eccVector.cross(calcOrbit.orbitingBody.velocity).norm()
