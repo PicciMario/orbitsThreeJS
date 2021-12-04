@@ -122,10 +122,23 @@ setMeshPosition(earth);
 // --- Moon -------------------------------------------------------------------
 
 var moon = new Body('Moon', 7.3477e22, 1737.1e3, 0.0661e9);
-moon.position = earth.calcSatellitePosition(3.844e8, 90, 0)
+
+let moonRadius = 3.844e8
+// moon.position = earth.calcSatellitePosition(moonRadius, 90, 0)
+let moonAngle = 0 + (10 * Math.PI / 180)
+moon.position = new Vector(
+  moonRadius * Math.cos(moonAngle),
+  0,
+  moonRadius * Math.sin(moonAngle),
+)
 
 let orbitVelocity = 1027.77	
-moon.velocity = new Vector(0, 0, -orbitVelocity);
+// moon.velocity = new Vector(0, 0, -orbitVelocity);
+moon.velocity = new Vector(
+  orbitVelocity * Math.sin(moonAngle),
+  0,
+  orbitVelocity * -Math.cos(moonAngle)
+)
 
 //Create geometry and material
 var moonGeometry = new THREE.SphereGeometry(
@@ -222,8 +235,9 @@ let orbitTests = [
   },
   {
     desc: 'Eq. Circ. Pro.',
-    position: earth.calcSatellitePosition(400e3, 0, 0),
-    velocity: new Vector(7670, 0, 0)    
+    // position: earth.calcSatellitePosition(400e3, 0, 0),
+    position: new Vector(-400e3 - earth.radius, 0, 0),
+    velocity: new Vector(0, 0, 7670 + 3085)
   }   
 ]
 
@@ -365,7 +379,7 @@ class Arrow{
 // ----------------------------------------------------------------------------
 
 // Simulazione orbita con parametri calcolati
-let angleSteps = 36*2;
+let angleSteps = 36*2*20;
 let orbitSim = buildLineMesh(angleSteps, 'yellow', true)
 scene.add(orbitSim)
 
@@ -617,7 +631,7 @@ var render = function (actions) {
     refreshOrbitalParamsUI(calcOrbit)
 
     // Disegna traiettorie propagate
-    buildTrajectory(currentTime, ship, [earth], simStepNumber, simStepSize, maneuvers)
+    buildTrajectory(currentTime, ship, [earth, moon], simStepNumber, simStepSize, maneuvers)
     
     // Resetta tempo calcolo fisica
     sinceLastPhysicsCalc = 0;
