@@ -44,7 +44,7 @@ camera.lookAt(0,0,0)
 
 // Inizializzazione canvas
 const canvas = document.querySelector('#c');
-var renderer = new THREE.WebGLRenderer({canvas});
+var renderer = new THREE.WebGLRenderer({canvas, antialias:true});
 
 // Creazione scena
 var scene = new THREE.Scene();
@@ -438,7 +438,19 @@ let newManeuvers = [
   //   100,
   //   1000,
   //   0
-  // )  
+  // ),
+  // new Maneuver(
+  //   new Date(new Date().getTime() + 100 * 1000),
+  //   100,
+  //   1000,
+  //   0
+  // ),
+  // new Maneuver(
+  //   new Date(new Date().getTime() + 100 * 1000),
+  //   100,
+  //   1000,
+  //   0
+  // ),
 ]
 newManeuvers.forEach(man => addManeuver(man))
 
@@ -549,7 +561,6 @@ setInterval(() => {
 
 // Vettori debug
 let eccArrow = new Arrow("ecc", "yellow", scene)
-let periArrow = new Arrow("peri", "orange", scene)
 
 // Funzione di rendering
 
@@ -601,12 +612,6 @@ var render = function (actions) {
     // vettori debug
     eccArrow.setEnd(calcOrbit.eccVector.norm().scale(15))
     eccArrow.refresh(camera)
-    periArrow.setEnd(new Vector(
-      Math.cos(calcOrbit.argPeriapsis),
-      0,
-      Math.sin(calcOrbit.argPeriapsis),
-    ).norm().scale(15))
-    periArrow.refresh(camera)
 
     // Aggiorna parametri orbita simulata e stato corrente su UI
     refreshOrbitalParamsUI(calcOrbit)

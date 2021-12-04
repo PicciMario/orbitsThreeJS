@@ -138,32 +138,40 @@ export function alignToCamera(item, camera){
 export function refreshOrbitalParamsUI(calcOrbit){
 
   let orbitalParamsListUI = [
-    {div: 'specificEnergyDiv', 	label: 'Spec. Energy', 	unit: 'KJ/Kg', 	val: calcOrbit.specificEnergy/1000},
-    {div: 'semimajAxisDiv', 	  label: 'Sma', 			    unit: 'km', 	  val: calcOrbit.semiMajorAxis/1000},
-    {div: 'eccDiv', 			      label: 'Ecc', 			    unit: '', 		  val: calcOrbit.eccentricity},
-    {div: 'apoDiv', 			      label: 'ApD', 			    unit: 'km', 	  val: (calcOrbit.rApoapsis - calcOrbit.centreBody.radius)/1000},
-    {div: 'perDiv', 			      label: 'PeD', 			    unit: 'km', 	  val: (calcOrbit.rPeriapsis - calcOrbit.centreBody.radius)/1000},
-    {div: 'periodoDiv', 	      label: 'T', 			      unit: 'h', 		  val: calcOrbit.period/3600},
-    {div: 'incl', 				      label: 'Incl', 		      unit: 'deg', 	  val: calcOrbit.inclination * 180 / Math.PI},
-    {div: 'longAsc', 			      label: 'LonAsc',	 	    unit: 'deg', 	  val: calcOrbit.longAscNode * 180 / Math.PI},
-    {div: 'argPer', 			      label: 'Arg.per', 		  unit: 'deg', 	  val: calcOrbit.argPeriapsis * 180 / Math.PI},
-    {div: 'vApo', 				      label: 'ApV', 			    unit: 'm/s', 	  val: calcOrbit.vApoapsis},
-    {div: 'vPer', 				      label: 'PeV', 			    unit: 'm/s', 	  val: calcOrbit.vPeriapsis},
-    {div: 'vCur', 				      label: 'v', 			      unit: 'm/s', 	  val: calcOrbit.orbitingBody.velocity.module()},
-    {div: 'rCur', 				      label: 'r', 			      unit: 'km', 	  val: calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() / 1000},
-    {div: 'dCur', 				      label: 'h', 			      unit: 'km', 	  val: (calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() - calcOrbit.centreBody.radius) / 1000},
-    {div: 'trueAn', 			      label: 'True an.',    	unit: 'deg.', 	val: calcOrbit.trueAnomaly*180/Math.PI},
+    {div: 'specificEnergyDiv', 	label: 'Spec.energy', 	unit: 'KJ/Kg', 	val: calcOrbit.specificEnergy/1000},
+    {div: 'semimajAxisDiv', 	  label: 'Semimaj.axis',  unit: 'km', 	  val: calcOrbit.semiMajorAxis/1000},
+    {div: 'eccDiv', 			      label: 'Eccentricity',  unit: '', 		  val: calcOrbit.eccentricity},
+    {div: 'apoDiv', 			      label: 'Apo.height',    unit: 'km', 	  val: (calcOrbit.rApoapsis - calcOrbit.centreBody.radius)/1000},
+    {div: 'perDiv', 			      label: 'Per.height',    unit: 'km', 	  val: (calcOrbit.rPeriapsis - calcOrbit.centreBody.radius)/1000},
+    {div: 'periodoDiv', 	      label: 'Period',	      unit: 'h', 		  val: calcOrbit.period/3600},
+    {div: 'incl', 				      label: 'Inclination',   unit: 'deg', 	  val: calcOrbit.inclination * 180 / Math.PI},
+    {div: 'longAsc', 			      label: 'Lon.asc.node',  unit: 'deg', 	  val: calcOrbit.longAscNode * 180 / Math.PI},
+    {div: 'argPer', 			      label: 'Argument per.', unit: 'deg', 	  val: calcOrbit.argPeriapsis * 180 / Math.PI},
+    {div: 'vApo', 				      label: 'Apo.velocity',  unit: 'm/s', 	  val: calcOrbit.vApoapsis},
+    {div: 'vPer', 				      label: 'Per.velocity',  unit: 'm/s', 	  val: calcOrbit.vPeriapsis},
+    {div: 'vCur', 				      label: 'Velocity',      unit: 'm/s', 	  val: calcOrbit.orbitingBody.velocity.module()},
+    {div: 'rCur', 				      label: 'Radius', 	      unit: 'km', 	  val: calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() / 1000},
+    {div: 'dCur', 				      label: 'Height', 	      unit: 'km', 	  val: (calcOrbit.orbitingBody.position.diff(calcOrbit.centreBody.position).module() - calcOrbit.centreBody.radius) / 1000},
+    {div: 'trueAn', 			      label: 'True anom.',  	unit: 'deg.', 	val: calcOrbit.trueAnomaly*180/Math.PI},
   ]
 
   orbitalParamsListUI.forEach(({div, label, unit, val}) => {
-    document.getElementById(div).innerHTML = `${label}: ${val.toLocaleString(undefined, {maximumFractionDigits:2})} ${unit}`
+    document
+      .getElementById(div)
+      .getElementsByClassName('desc')[0].innerHTML = `${label}`
+    document
+      .getElementById(div)
+      .getElementsByClassName('val')[0].innerHTML = `${val.toLocaleString(undefined, {maximumFractionDigits:2, minimumFractionDigits:2})}`      
+    document
+      .getElementById(div)
+      .getElementsByClassName('unit')[0].innerHTML = `${unit}`            
   })
 
 }
 
 export function refreshTimeUI(currentTime, timeSpeed){
   document.getElementById('timeDiv-currTime').innerHTML = currentTime.toLocaleString()
-  document.getElementById('timeDiv-timeAcc').innerHTML = timeSpeed  
+  document.getElementById('timeDiv-timeAcc').innerHTML = `x${timeSpeed}`
 }
 
 // ----------------------------------------------------------------------------

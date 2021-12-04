@@ -1,7 +1,7 @@
 html, body {
 	margin: 0;
 	height: 100%;
-	font-family: 'Exo', sans-serif;
+	font-family: 'Share Tech Mono', monospace;
 	font-size: small;
 }
 
@@ -31,6 +31,10 @@ html, body {
 	border-radius: 2px;
 }
 
+.uiButton:hover{
+	background-color: rgba(3, 192, 3, 0.767);
+}
+
 .hidden{
 	display:none;
 }
@@ -45,13 +49,30 @@ html, body {
 }
 #textDiv > *{
 	padding-bottom: 1px;
+	display: flex;
+	align-items: center;
 }
+
 #textDiv > .title{
 	font-weight: bold;
+	padding-bottom: 5px;
 }
 #textDiv > .title ~ .title{
 	padding-top:8px;
+	padding-top:8px;
 }
+
+#textDiv > * > .desc{
+	min-width: 15ch;
+}
+#textDiv > * > .val{
+	margin-left: auto;
+}
+#textDiv > * > .unit{
+	min-width: 5ch;
+	margin-left: 5px;
+}
+
 
 /* ----- Area selezione scenario -----*/
 
@@ -86,13 +107,29 @@ html, body {
 	padding: 5px;
 }
 
+/* Hide prototype div */
+#maneuvers > #maneuver-prototype{
+	display: none;
+	color: yellow;
+}
+
 .maneuverToDo{
-	color: green;
+	color: lightgreen;
 }
 
 .maneuverDone{
 	color: red;
 }
+
+#maneuvers > .maneuver {
+	display: flex;
+	margin-top: 10px;
+}
+#maneuvers > .maneuver > .leftCol {
+	align-self: center;
+	margin-right: 10px;
+}
+
 
 /* ----- Area tempo -----*/
 

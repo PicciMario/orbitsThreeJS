@@ -10,58 +10,134 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Exo&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  	<canvas id="c"></canvas>
+  <canvas id="c"></canvas>
 
-  	<div id="textDiv" class="uiDiv">
-		<div class="title">According to Earth orbit:</div>
-  		<div id="specificEnergyDiv"></div>
-  		<div id="semimajAxisDiv"></div>
-  		<div id="eccDiv"></div>
-  		<div id="incl"></div>
-		<div id="longAsc"></div>
-		<div id="argPer"></div>
-  		<div id="apoDiv"></div>
-  		<div id="vApo"></div>
-  		<div id="perDiv"></div>
-  		<div id="vPer"></div>
-  		<div id="periodoDiv"></div>
-		<div class="title">Current:</div>
-		<div id="vCur"></div>
-		<div id="rCur"></div>
-		<div id="dCur"></div>
-		<div id="trueAn"></div>
-	</div>
+  <div id="textDiv" class="uiDiv">
 
-	<div id="orbitsSelector" class="uiDiv"></div>
+    <div class="title">According to Earth orbit:</div>
+      <div id="specificEnergyDiv">
+      <span class="desc"></span>
+      <span class="val"></span>
+      <span class="unit"></span>
+    </div>
+    <div id="semimajAxisDiv">
+      <span class="desc"></span>
+      <span class="val"></span>
+      <span class="unit"></span>			  
+    </div>
+    <div id="eccDiv">
+      <span class="desc"></span>
+      <span class="val"></span>
+      <span class="unit"></span>			
+    </div>
+    <div id="incl">
+      <span class="desc"></span>
+      <span class="val"></span>
+      <span class="unit"></span>			  
+    </div>
+    <div id="longAsc">
+      <span class="desc"></span>
+      <span class="val"></span>
+      <span class="unit"></span>			
+    </div>
+    <div id="argPer">
+      <span class="desc"></span>
+      <span class="val"></span>
+      <span class="unit"></span>			
+    </div>
+    <div id="apoDiv">
+      <span class="desc"></span>
+      <span class="val"></span>
+      <span class="unit"></span>			  
+    </div>
+    <div id="vApo">
+			<span class="desc"></span>
+			<span class="val"></span>
+			<span class="unit"></span>      
+    </div>
+    <div id="perDiv">
+			<span class="desc"></span>
+			<span class="val"></span>
+			<span class="unit"></span>      
+    </div>
+    <div id="vPer">
+			<span class="desc"></span>
+			<span class="val"></span>
+			<span class="unit"></span>      
+    </div>
+    <div id="periodoDiv">
+			<span class="desc"></span>
+			<span class="val"></span>
+			<span class="unit"></span>      
+    </div>
+    <div class="title">Current state:</div>
+    <div id="vCur">
+			<span class="desc"></span>
+			<span class="val"></span>
+			<span class="unit"></span>      
+    </div>
+    <div id="rCur">
+			<span class="desc"></span>
+			<span class="val"></span>
+			<span class="unit"></span>      
+    </div>
+    <div id="dCur">
+			<span class="desc"></span>
+			<span class="val"></span>
+			<span class="unit"></span>      
+    </div>
+    <div id="trueAn">
+			<span class="desc"></span>
+			<span class="val"></span>
+			<span class="unit"></span>      
+    </div>
+  </div>
 
-	<div id="maneuvers" class="uiDiv">
-		<div>Next maneuvers:</div>
-		<div id='maneuver-prototype' class='hidden'>
-			<button class='maneuver-button'>X</button>
-			<span class='maneuver-label'></span>
-			<span>Prog:</span>
-			<span class='maneuver-prograde'></span>
-			<span>Rad:</span>
-			<span class='maneuver-radial'></span>
-			<span>Norm:</span>
-			<span class='maneuver-normal'></span>
-			<button class="maneuver-add-prograde">+</button>
-		</div>
-	</div>
+  <div id="orbitsSelector" class="uiDiv"></div>
 
-	<div id="timeDiv" class="uiDiv">
-		<div id="timeDiv-currTime"></div>
-		<div id="timeDiv-speed">
-			<button class="timeDiv-decTimeAcc uiButton">-</button>
-			<div id="timeDiv-timeAcc"></div>
-			<button class="timeDiv-incTimeAcc uiButton">+</button>
-		</div>
-	</div>
+  <div id="maneuvers" class="uiDiv">
+
+    <div>Next maneuvers:</div>
+
+    <div id='maneuver-prototype' class='maneuver'>
+
+      <div class="leftCol">
+        <button class='maneuver-button uiButton'>X</button>
+      </div>
+
+      <div class="centerCol">
+
+        <div class="header">
+          <span class='maneuver-label'></span>
+        </div>
+
+        <div class="values">
+          <span>Prog:</span>
+          <span class='maneuver-prograde'></span>
+          <span>Rad:</span>
+          <span class='maneuver-radial'></span>
+          <span>Norm:</span>
+          <span class='maneuver-normal'></span>
+          <button class="maneuver-add-prograde uiButton">+</button>
+        </div>
+
+      </div> 
+
+    </div>
+  </div>
+
+  <div id="timeDiv" class="uiDiv">
+    <div id="timeDiv-currTime"></div>
+    <div id="timeDiv-speed">
+      <button class="timeDiv-decTimeAcc uiButton">-</button>
+      <div id="timeDiv-timeAcc"></div>
+      <button class="timeDiv-incTimeAcc uiButton">+</button>
+    </div>
+  </div>
 
 </body>
 </html>
