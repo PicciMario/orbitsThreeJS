@@ -337,9 +337,11 @@ class Arrow{
     posArray[5] = position.z;
     this.lineMesh.geometry.attributes.position.needsUpdate = true;
     
-    this.xText.position.x = position.x
-    this.xText.position.y = position.y
-    this.xText.position.z = position.z
+    if (this.xText){
+      this.xText.position.x = position.x
+      this.xText.position.y = position.y
+      this.xText.position.z = position.z
+    }
 
   }  
 
