@@ -65,7 +65,6 @@ export function orbitalCalcBody(orbitingBody, centreBody){
   if (isNaN(argPeriapsis)) argPeriapsis = 0
   if (inclination == 0 || inclination == Math.PI){
     argPeriapsis = Math.acos(eccVector.x / eccVector.module())
-    console.log(eccVector.x)
     if (eccVector.z < 0) argPeriapsis = 2*Math.PI - argPeriapsis
   }
 

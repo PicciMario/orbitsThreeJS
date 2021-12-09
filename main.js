@@ -14,6 +14,7 @@ import {
   calcManeuverTimeFromIntersection, refreshTimeUI
 } from './scripts/functions.js'
 import Maneuver from './scripts/maneuver.js'
+import Arrow from './scripts/arrow.js'
 
 // --- Costanti ---------------------------------------------------------------
 
@@ -125,7 +126,7 @@ var moon = new Body('Moon', 7.3477e22, 1737.1e3, 0.0661e9);
 
 let moonRadius = 3.844e8
 // moon.position = earth.calcSatellitePosition(moonRadius, 90, 0)
-let moonAngle = 0 + (10 * Math.PI / 180)
+let moonAngle = 0 + (65 * Math.PI / 180)
 moon.position = new Vector(
   moonRadius * Math.cos(moonAngle),
   0,
@@ -284,75 +285,6 @@ function drawVector(start, vector, color = "yellow"){
   const lineMesh = new THREE.Line( lineGeometry, lineMat );
 
   scene.add(lineMesh)	
-
-}
-
-class Arrow{
-
-  constructor(text, color, scene){
-
-    const lineMat = new THREE.LineBasicMaterial( { color: color } );
-
-    const linePoints = [];  
-    linePoints.push( new THREE.Vector3(0,0,0));
-    linePoints.push( new THREE.Vector3(0,0,0));
-  
-    const lineGeometry = new THREE.BufferGeometry().setFromPoints( linePoints );	
-    
-    this.lineMesh = new THREE.Line( lineGeometry, lineMat );
-  
-    scene.add(this.lineMesh)	
-
-    loader.load( 'fonts/helvetiker_regular.typeface.json', (font) => {
-
-      const xGeo = new THREE.TextGeometry( text, {
-        font: font,
-        size: .3,
-        height: .01,
-        curveSegments: 6,
-      });
-    
-      let xMaterial = new THREE.MeshBasicMaterial({ color: color });
-      this.xText = new THREE.Mesh(xGeo , xMaterial);
-
-      scene.add(this.xText)
-
-    })
-  
-  }
-
-  setStart(position){
-    let posArray = this.lineMesh.geometry.getAttribute('position').array;
-    posArray[0] = position.x;
-    posArray[1] = position.y;
-    posArray[2] = position.z;
-    this.lineMesh.geometry.attributes.position.needsUpdate = true;		
-  }
-
-  setEnd(position){
-
-    let posArray = this.lineMesh.geometry.getAttribute('position').array;
-    posArray[3] = position.x;
-    posArray[4] = position.y;
-    posArray[5] = position.z;
-    this.lineMesh.geometry.attributes.position.needsUpdate = true;
-    
-    if (this.xText){
-      this.xText.position.x = position.x
-      this.xText.position.y = position.y
-      this.xText.position.z = position.z
-    }
-
-  }  
-
-  refresh(camera){
-    if (this.xText && camera){
-      this.xText.rotation.x = camera.rotation.x;
-      this.xText.rotation.y = camera.rotation.y;
-      this.xText.rotation.z = camera.rotation.z;
-    }    
-  }
-
 
 }
 
@@ -575,6 +507,29 @@ setInterval(() => {
 
 // -----------------------------------------------------------------
 
+// Sfere per indicazione passaggio minimo ship-moon
+
+var moonSimGeo = new THREE.SphereGeometry(2000000 * scaleFactor, 50, 50 );
+var moonSimMat = new THREE.MeshPhongMaterial({
+  color: 'lightgreen',
+  transparent: true,
+  opacity: .8
+});
+let moonSimMesh = new THREE.Mesh(moonSimGeo, moonSimMat);
+scene.add(moonSimMesh);
+
+var shipSimGeo = new THREE.SphereGeometry(2000000 * scaleFactor, 50, 50 );
+var shipSimMat = new THREE.MeshPhongMaterial({
+  color: 'red',
+  transparent: true,
+  opacity: .8
+});
+let shipSimMesh = new THREE.Mesh(shipSimGeo, shipSimMat);
+scene.add(shipSimMesh); 
+
+
+// -----------------------------------------------------------------
+
 // Vettori debug
 let eccArrow = new Arrow("ecc", "yellow", scene)
 
@@ -633,7 +588,16 @@ var render = function (actions) {
     refreshOrbitalParamsUI(calcOrbit)
 
     // Disegna traiettorie propagate
-    buildTrajectory(currentTime, ship, [earth, moon], simStepNumber, simStepSize, maneuvers)
+    let [moonMinPos, shipMinPos] = buildTrajectory(currentTime, ship, [earth, moon], simStepNumber, simStepSize, maneuvers, earth, moon)
+
+    if (moonMinPos && shipMinPos){
+      moonSimMesh.position.x = moonMinPos.x * scaleFactor;
+      moonSimMesh.position.y = moonMinPos.y * scaleFactor;
+      moonSimMesh.position.z = moonMinPos.z * scaleFactor;
+      shipSimMesh.position.x = shipMinPos.x * scaleFactor;
+      shipSimMesh.position.y = shipMinPos.y * scaleFactor;
+      shipSimMesh.position.z = shipMinPos.z * scaleFactor;   
+    }
     
     // Resetta tempo calcolo fisica
     sinceLastPhysicsCalc = 0;

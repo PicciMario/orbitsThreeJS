@@ -86,15 +86,21 @@ export function acceleration(attractors, position){
 }
 
 
-export function buildTrajectory(currentTime, ship, attractors, simStepNumber, simStepSize, maneuvers){
+export function buildTrajectory(currentTime, ship, attractors, simStepNumber, simStepSize, maneuvers, earth, moon){
 
   // Prepare array of future maneuvers to simulate
   let simManeuvers = maneuvers.slice().sort((a,b) => a.time < b.time)
 
   // Refresh orbit propagation
   let shipSim = ship.clone();
+  let moonSim = moon.clone();
   let shipSimTime = currentTime;
   let effectiveSteps = simStepNumber
+
+  let moonMinDist = -1;
+  let moonMinPos = new Vector()
+  let shipMinPos = new Vector()
+
   for (let step = 0; step < simStepNumber; step++){
     
     let posArray = ship.lineMesh.geometry.getAttribute('position').array;	
@@ -149,9 +155,23 @@ export function buildTrajectory(currentTime, ship, attractors, simStepNumber, si
 
     // Propaga la posizione simulata al prossimo step
     shipSimTime = new Date(shipSimTime.getTime() + simTimeIncrement*1000)
-    let shipRes = propagate(shipSim.position, shipSim.velocity, attractors, simTimeIncrement)
+    let shipRes = propagate(shipSim.position, shipSim.velocity, [earth, moonSim], simTimeIncrement)
     shipSim.position = shipRes[0]
-    shipSim.velocity = shipRes[1]      
+    shipSim.velocity = shipRes[1]  
+    
+    let moonRes = propagate(moonSim.position, moonSim.velocity, [earth], simTimeIncrement)
+    moonSim.position = moonRes[0]
+    moonSim.velocity = moonRes[1] 
+    
+    let moonDist = moonSim.position.diff(shipSim.position).module()
+    if (
+      (moonMinDist == -1 || moonDist < moonMinDist)
+      && moonSim.isInsideSOI(shipSim.position)
+      ){
+      moonMinDist = moonDist
+      moonMinPos = moonSim.position
+      shipMinPos = shipSim.position
+    }
     
   }
 
@@ -171,5 +191,10 @@ export function buildTrajectory(currentTime, ship, attractors, simStepNumber, si
   ship.lineMesh.geometry.computeBoundingBox();
   ship.lineMesh.geometry.computeBoundingSphere();
   ship.lineMesh.visible = true;	
+
+  return([
+    moonMinDist > 0 ? moonMinPos : null, 
+    moonMinDist > 0 ? shipMinPos : null
+  ])
 
 }

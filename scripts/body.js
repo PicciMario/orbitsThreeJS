@@ -59,5 +59,16 @@ export default class Body{
     return newBody;
 
   }
+
+  /**
+   * Checks whether the vector pos is inside the sphere of influence
+   * of this body.
+   * @param {Vector} pos 
+   */
+  isInsideSOI(pos){
+    let dist = pos.diff(this.position).module()
+    if (dist <= this.SOIRadius && this.SOIRadius > 0) return true;
+    return false;
+  }
   
 }
