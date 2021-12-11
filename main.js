@@ -381,12 +381,12 @@ var maneuvers = []
 
 // Manovre di test
 let newManeuvers = [
-  // new Maneuver(
-  //   new Date(new Date().getTime() + 100 * 1000),
-  //   100,
-  //   1000,
-  //   0
-  // ),
+  new Maneuver(
+    new Date(new Date().getTime() + 100 * 1000),
+    100,
+    1000,
+    0
+  ),
   // new Maneuver(
   //   new Date(new Date().getTime() + 100 * 1000),
   //   100,
@@ -439,7 +439,34 @@ newManeuvers.forEach(man => addManeuver(man))
   
 	let buttonAddPro = newDiv.getElementsByClassName("maneuver-add-prograde")[0]
 	buttonAddPro.addEventListener("click", function() {
-	  maneuvers.filter(man => man.id == id).forEach(man => man.prograde = man.prograde + 100)
+	  maneuvers.filter(man => man.id == id).forEach(man => {
+      man.prograde = man.prograde + 100
+      document.getElementById(id)
+        // .getElementsByClassName('centerCol')[0]
+        // .getElementsByClassName('values')[0]
+        .getElementsByClassName('maneuver-prograde')[0]
+        .innerHTML = man.prograde
+      })
+	})  
+
+	let buttoLowerPro = newDiv.getElementsByClassName("maneuver-lower-prograde")[0]
+	buttoLowerPro.addEventListener("click", function() {
+	  maneuvers.filter(man => man.id == id).forEach(man => {
+      man.prograde = man.prograde - 100
+      document.getElementById(id)
+        .getElementsByClassName('maneuver-prograde')[0]
+        .innerHTML = man.prograde
+      })
+	})    
+
+	let buttonAddTime = newDiv.getElementsByClassName("maneuver-add-time")[0]
+	buttonAddTime.addEventListener("click", function() {
+	  maneuvers.filter(man => man.id == id).forEach(man => {
+      man.time = new Date(man.time.getTime() + 60*1000)
+      document.getElementById(id)
+        .getElementsByClassName('maneuver-label')[0]
+        .innerHTML = man.time.toLocaleString()
+      })
 	})  
   
 	document.getElementById('maneuvers').appendChild(newDiv)  

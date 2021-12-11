@@ -39,6 +39,10 @@ html, body {
 	display:none;
 }
 
+.grid-right{
+	justify-self: right;
+}
+
 /* ----- Area testo sx -----*/
 
 #textDiv{
@@ -130,6 +134,13 @@ html, body {
 	margin-right: 10px;
 }
 
+#maneuvers > .maneuver > .centerCol > .values{
+	display: grid;
+	grid-template-columns: [label] auto [value] auto [unit] auto 20px 20px;
+	gap: 3px;
+	align-items: center;
+	margin-top: 5px;
+}
 
 /* ----- Area tempo -----*/
 
