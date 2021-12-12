@@ -518,17 +518,20 @@ setInterval(() => {
   // Rotate earth
   earth.mesh.rotation.y += 2 * Math.PI / (24*60*60*1000) * 300;  
 
-  // Propagate ship status
-  let [shipPosition, shipVelocity] = propagate(ship.position, ship.velocity, [earth], timeStep * timeSpeed)
-  ship.position = shipPosition
-  ship.velocity = shipVelocity
-  setMeshPosition(ship);
+  for (let i = 0; i < timeSpeed; i++){
 
-  // Propagate moon status
-  let [moonPosition, moonVelocity] = propagate(moon.position, moon.velocity, [earth], timeStep * timeSpeed)
-  moon.position = moonPosition
-  moon.velocity = moonVelocity
-  setMeshPosition(moon);	
+    // Propagate ship status
+    let [shipPosition, shipVelocity] = propagate(ship.position, ship.velocity, [earth], timeStep)// * timeSpeed)
+    ship.position = shipPosition
+    ship.velocity = shipVelocity
+    setMeshPosition(ship);
+
+    // Propagate moon status
+    let [moonPosition, moonVelocity] = propagate(moon.position, moon.velocity, [earth], timeStep)// * timeSpeed)
+    moon.position = moonPosition
+    moon.velocity = moonVelocity
+    setMeshPosition(moon);	
+  }
 
 }, timeStep*1000)
 
