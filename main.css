@@ -161,3 +161,12 @@ html, body {
 	align-items: center;
 	gap: 5px;
 }
+
+#shipIndicator{
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 0, 0, 0.425);
+    z-index: 1;
+    position: absolute;
+	border-radius: 50%;
+}

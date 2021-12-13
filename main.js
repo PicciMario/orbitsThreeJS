@@ -508,6 +508,28 @@ orbitDraw(calcOrbitMoon, moonOrbitSim, angleSteps, scaleFactor)
 
 // -----------------------------------------------------------------
 
+setInterval(() => {
+
+  camera.updateMatrixWorld()
+
+  let pos = new THREE.Vector3(
+    ship.position.x * scaleFactor,
+    ship.position.y * scaleFactor,
+    ship.position.z * scaleFactor
+  ).project(camera)
+
+  const canvas = renderer.domElement;
+  const halfWidth = canvas.clientWidth / 2;
+  const halfHeight = canvas.clientHeight / 2;
+
+  let x = halfWidth + halfWidth * pos.x - 20
+  let y = halfHeight + halfHeight * pos.y - 20
+
+  document.getElementById('shipIndicator').style.left = `${x}px`
+  document.getElementById('shipIndicator').style.bottom = `${y}px`
+
+}, 50);
+
 // Timer principale dei calcoli fisici
 
 setInterval(() => {
