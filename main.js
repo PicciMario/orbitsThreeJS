@@ -639,8 +639,36 @@ var render = function (actions) {
     // Aggiorna parametri orbita simulata e stato corrente su UI
     refreshOrbitalParamsUI(calcOrbit)
 
+    let propagationScenario = [
+      {
+        id: "ship",
+        body: ship,
+        attractors: ["earth", "moon"],
+        propagate: true,
+        draw: true,
+        orbiting: earth,
+        maneuvers: maneuvers
+      },
+      {
+        id: "moon",
+        body: moon,
+        attractors: ["earth"],
+        propagate: true,
+        draw: false,
+        orbiting: earth
+      },
+      {
+        id: "earth",
+        body: earth,
+        attractors: [],
+        propagate: false,
+        draw: false,
+        orbiting: null
+      }
+    ]
+
     // Disegna traiettorie propagate
-    let [moonMinPos, shipMinPos] = buildTrajectory(currentTime, ship, [earth, moon], simStepNumber, simStepSize, maneuvers, earth, moon)
+    let [moonMinPos, shipMinPos] = buildTrajectory(currentTime, simStepNumber, simStepSize, propagationScenario)
 
     if (moonMinPos && shipMinPos){
       moonSimMesh.position.x = moonMinPos.x * scaleFactor;

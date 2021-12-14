@@ -86,115 +86,148 @@ export function acceleration(attractors, position){
 }
 
 
-export function buildTrajectory(currentTime, ship, attractors, simStepNumber, simStepSize, maneuvers, earth, moon){
+export function buildTrajectory(currentTime, simStepNumber, simStepSize, scenario){
 
-  // Prepare array of future maneuvers to simulate
-  let simManeuvers = maneuvers.slice().sort((a,b) => a.time < b.time)
+  // Copie dei bodies per simulazione
+  scenario.filter(elem => elem.body != null).forEach(elem => {
+    elem.bodySim = elem.body.clone();
+    elem.maneuvers = (elem.maneuvers || []).slice().sort((a,b) => a.time < b.time)
+    elem.effectiveSteps = simStepNumber
+  })
 
-  // Refresh orbit propagation
-  let shipSim = ship.clone();
-  let moonSim = moon.clone();
-  let shipSimTime = currentTime;
-  let effectiveSteps = simStepNumber
-
-  let moonMinDist = -1;
-  let moonMinPos = new Vector()
-  let shipMinPos = new Vector()
+  // let moonMinDist = -1;
+  // let moonMinPos = new Vector()
+  // let shipMinPos = new Vector()
 
   for (let step = 0; step < simStepNumber; step++){
-    
-    let posArray = ship.lineMesh.geometry.getAttribute('position').array;	
-    posArray[step*3] = shipSim.position.x*scaleFactor;
-    posArray[step*3+1] = shipSim.position.y*scaleFactor;
-    posArray[step*3+2] = shipSim.position.z*scaleFactor;
-    ship.meshTime[step] = shipSimTime.getTime();
 
-    // Verifica collisioni
-    let collision = false
-    attractors.forEach(attr => {
-      if (shipSim.position.diff(attr.position).module() < attr.radius){
-        collision = true;
-      }    
-    })  
-    if (collision) {
-      effectiveSteps = step
-      break;
-    }
+    // Solo per elementi da disegnare: disegna il passo di propagazione e 
+    // valuta eventuali collisioni.
+    scenario
+    .filter(elem => elem.draw && elem.effectiveSteps > step)
+    .forEach(elem => {
+
+      // Disegna passo di propagazione
+      let posArray = elem.body.lineMesh.geometry.getAttribute('position').array;	
+      posArray[step*3] = elem.bodySim.position.x*scaleFactor;
+      posArray[step*3+1] = elem.bodySim.position.y*scaleFactor;
+      posArray[step*3+2] = elem.bodySim.position.z*scaleFactor;
+      elem.body.meshTime[step] = currentTime.getTime();
+
+      // Verifica collisioni
+      let collision = false
+      elem.attractors.forEach(attrID => {
+
+        // Find attractor by id
+        let attr = scenario.find(elem => elem.id == attrID).bodySim
+
+        if (elem.bodySim.position.diff(attr.position).module() < attr.radius){
+          collision = true;
+        }    
+
+      })  
+      if (collision) {
+        elem.effectiveSteps = step
+      }
+
+    })
    
     // Apply maneuvers
-    simManeuvers.forEach(({time, prograde, radial, normal}, i) => {
-
-      if (shipSimTime >= time){
-
-        let velVector = shipSim.velocity.norm()
-        let radVector = shipSim.position.diff(attractors[0].position).norm()
-        let normVector = velVector.cross(radVector).norm()
-
-        shipSim.velocity = shipSim.velocity
-          .add(velVector.scale(prograde))
-          .add(radVector.scale(radial))
-          .add(normVector.scale(normal))
-
-        simManeuvers.splice(i, 1)
-
-      }
-
-    })   
-
-    // Se una manovra accade tra questo step e il prossimo, modifica il prossimo
-    // step in modo tale da coincidere con la manovra (rende precisa la traiettoria 
-    // della simulazione a cavallo del momento della manovra stessa).
     let simTimeIncrement = simStepSize
-    if (maneuvers.length > 0){
-      let nextManeuver = maneuvers[0] // Le manovre sono già ordinate cronologicamente
-      let secondsToNextManeuver = (nextManeuver.time.getTime() - shipSimTime.getTime()) / 1000
-      if (secondsToNextManeuver > 0 && secondsToNextManeuver < simTimeIncrement) {
-        simTimeIncrement = secondsToNextManeuver
-      }
-    }
+    scenario
+    .filter(elem => elem.effectiveSteps > step && elem.orbiting)
+    .forEach(elem => {
 
-    // Propaga la posizione simulata al prossimo step
-    shipSimTime = new Date(shipSimTime.getTime() + simTimeIncrement*1000)
-    let shipRes = propagate(shipSim.position, shipSim.velocity, [earth, moonSim], simTimeIncrement)
-    shipSim.position = shipRes[0]
-    shipSim.velocity = shipRes[1]  
+      elem.maneuvers.forEach(({time, prograde, radial, normal}, i) => {
+
+        if (currentTime >= time){
+  
+          let velVector = elem.bodySim.velocity.norm()
+          let radVector = elem.bodySim.position.diff(elem.orbiting.position).norm()
+          let normVector = velVector.cross(radVector).norm()
+  
+          elem.bodySim.velocity = elem.bodySim.velocity
+            .add(velVector.scale(prograde))
+            .add(radVector.scale(radial))
+            .add(normVector.scale(normal))
+  
+          elem.maneuvers.splice(i, 1)
+  
+        }
+  
+        // Se una manovra accade tra questo step e il prossimo, modifica il prossimo
+        // step in modo tale da coincidere con la manovra (rende precisa la traiettoria 
+        // della simulazione a cavallo del momento della manovra stessa).        
+        if (elem.maneuvers.length > 0){
+          let nextManeuver = elem.maneuvers[0] // Le manovre sono già ordinate cronologicamente
+          let secondsToNextManeuver = (nextManeuver.time.getTime() - currentTime.getTime()) / 1000
+          if (secondsToNextManeuver > 0 && secondsToNextManeuver < simTimeIncrement) {
+            simTimeIncrement = secondsToNextManeuver
+          }
+        }      
+  
+      }) 
+
+    })
+
+    // Calcola il timestamp del passo successivo
+    currentTime = new Date(currentTime.getTime() + simTimeIncrement*1000)
+
+    // Per tutti gli elementi da propagare: propaga la posizione simulata al prossimo step
+    scenario
+    .filter(elem => elem.propagate && elem.effectiveSteps > step)
+    .forEach(elem => {
+
+      // find attractors by id
+      let attractors = elem.attractors.map(id => scenario.find(item => item.id == id).bodySim)
+
+      let res = propagate(elem.bodySim.position, elem.bodySim.velocity, attractors, simTimeIncrement)
+      elem.bodySim.position = res[0]
+      elem.bodySim.velocity = res[1]       
+    })
+
     
-    let moonRes = propagate(moonSim.position, moonSim.velocity, [earth], simTimeIncrement)
-    moonSim.position = moonRes[0]
-    moonSim.velocity = moonRes[1] 
-    
-    let moonDist = moonSim.position.diff(shipSim.position).module()
-    if (
-      (moonMinDist == -1 || moonDist < moonMinDist)
-      && moonSim.isInsideSOI(shipSim.position)
-      ){
-      moonMinDist = moonDist
-      moonMinPos = moonSim.position
-      shipMinPos = shipSim.position
-    }
+    // let moonDist = moonSim.position.diff(shipSim.position).module()
+    // if (
+    //   (moonMinDist == -1 || moonDist < moonMinDist)
+    //   && moonSim.isInsideSOI(shipSim.position)
+    //   ){
+    //   moonMinDist = moonDist
+    //   moonMinPos = moonSim.position
+    //   shipMinPos = shipSim.position
+    // }
     
   }
 
-  // Azzera i punti inutilizzati della mesh
-  // (altrimenti fanno collisione con il raytracer anche se non renderizzati)
-  let posArray = ship.lineMesh.geometry.getAttribute('position').array;	
-  for (let step = effectiveSteps; step < simStepNumber; step++){
-    posArray[step*3] = null;
-    posArray[step*3+1] = null;
-    posArray[step*3+2] = null;
-  }
+  // Per i bodies da disegnare...
+  scenario
+  .filter(elem => elem.draw)
+  .forEach(elem => {
 
-  // Refresha la mesh
-  ship.lineMesh.geometry.setDrawRange(0, effectiveSteps)
-  ship.lineMesh.geometry.attributes.position.needsUpdate = true;		
-  ship.lineMesh.updateMatrixWorld();
-  ship.lineMesh.geometry.computeBoundingBox();
-  ship.lineMesh.geometry.computeBoundingSphere();
-  ship.lineMesh.visible = true;	
+    // Azzera i punti inutilizzati della mesh
+    // (altrimenti fanno collisione con il raytracer anche se non renderizzati)    
+    let posArray = elem.body.lineMesh.geometry.getAttribute('position').array;	
+    for (let step = elem.effectiveSteps; step < simStepNumber; step++){
+      posArray[step*3] = null;
+      posArray[step*3+1] = null;
+      posArray[step*3+2] = null;
+    }
+  
+    // Refresha la mesh
+    elem.body.lineMesh.geometry.setDrawRange(0, elem.effectiveSteps)
+    elem.body.lineMesh.geometry.attributes.position.needsUpdate = true;		
+    elem.body.lineMesh.updateMatrixWorld();
+    elem.body.lineMesh.geometry.computeBoundingBox();
+    elem.body.lineMesh.geometry.computeBoundingSphere();
+    elem.body.lineMesh.visible = true;	
 
-  return([
-    moonMinDist > 0 ? moonMinPos : null, 
-    moonMinDist > 0 ? shipMinPos : null
-  ])
+  })
+
+
+  // return([
+  //   moonMinDist > 0 ? moonMinPos : null, 
+  //   moonMinDist > 0 ? shipMinPos : null
+  // ])
+  return([null, null])
 
 }
