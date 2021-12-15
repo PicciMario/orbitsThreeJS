@@ -641,13 +641,23 @@ var render = function (actions) {
 
     let propagationScenario = [
       {
+        // id (unique string)
         id: "ship",
+        // body
         body: ship,
+        // attractors (as list of scenario ids)
         attractors: ["earth", "moon"],
+        // true to propagate the body
         propagate: true,
+        // true to draw the body propagation
         draw: true,
+        // center attractor (to plan maneuver axes)
         orbiting: earth,
-        maneuvers: maneuvers
+        // maneuvers list
+        maneuvers: maneuvers,
+        // true to return minimum distance point from the
+        // other bodies in the scenario
+        calcMinumumDistances: true
       },
       {
         id: "moon",
@@ -668,15 +678,17 @@ var render = function (actions) {
     ]
 
     // Disegna traiettorie propagate
-    let [moonMinPos, shipMinPos] = buildTrajectory(currentTime, simStepNumber, simStepSize, propagationScenario)
+    buildTrajectory(currentTime, simStepNumber, simStepSize, propagationScenario)
 
-    if (moonMinPos && shipMinPos){
-      moonSimMesh.position.x = moonMinPos.x * scaleFactor;
-      moonSimMesh.position.y = moonMinPos.y * scaleFactor;
-      moonSimMesh.position.z = moonMinPos.z * scaleFactor;
-      shipSimMesh.position.x = shipMinPos.x * scaleFactor;
-      shipSimMesh.position.y = shipMinPos.y * scaleFactor;
-      shipSimMesh.position.z = shipMinPos.z * scaleFactor;   
+    // Disegna distanza minima ship-luna
+    let minDist = propagationScenario.find(item => item.id === 'ship').minimumDistances['moon']
+    if (minDist.primaryPosition && minDist.secondaryPosition){
+      moonSimMesh.position.x = minDist.primaryPosition.x * scaleFactor;
+      moonSimMesh.position.y = minDist.primaryPosition.y * scaleFactor;
+      moonSimMesh.position.z = minDist.primaryPosition.z * scaleFactor;
+      shipSimMesh.position.x = minDist.secondaryPosition.x * scaleFactor;
+      shipSimMesh.position.y = minDist.secondaryPosition.y * scaleFactor;
+      shipSimMesh.position.z = minDist.secondaryPosition.z * scaleFactor;  
     }
     
     // Resetta tempo calcolo fisica

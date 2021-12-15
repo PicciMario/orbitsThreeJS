@@ -186,16 +186,35 @@ export function buildTrajectory(currentTime, simStepNumber, simStepSize, scenari
       elem.bodySim.velocity = res[1]       
     })
 
-    
-    // let moonDist = moonSim.position.diff(shipSim.position).module()
-    // if (
-    //   (moonMinDist == -1 || moonDist < moonMinDist)
-    //   && moonSim.isInsideSOI(shipSim.position)
-    //   ){
-    //   moonMinDist = moonDist
-    //   moonMinPos = moonSim.position
-    //   shipMinPos = shipSim.position
-    // }
+    // Minimum distances
+    scenario
+    .filter(elem => elem.calcMinumumDistances)
+    .forEach(primary => {
+
+      scenario.filter(secondary => secondary.id !== primary.id).forEach(secondary => {
+
+        if (primary.minimumDistances == null) primary.minimumDistances = {}
+
+        if (primary.minimumDistances[secondary.id] == null) {
+          primary.minimumDistances[secondary.id] = {}
+          primary.minimumDistances[secondary.id].primaryPosition = null;
+          primary.minimumDistances[secondary.id].secondaryPosition = null;
+          primary.minimumDistances[secondary.id].distance = -1;
+        }
+
+        let distance = primary.bodySim.position.diff(secondary.bodySim.position).module()
+        if (
+          (primary.minimumDistances[secondary.id].distance == -1 || primary.minimumDistances[secondary.id].distance > distance)
+          && secondary.bodySim.isInsideSOI(primary.bodySim.position)
+        ){
+          primary.minimumDistances[secondary.id].primaryPosition = primary.bodySim.position;
+          primary.minimumDistances[secondary.id].secondaryPosition = secondary.bodySim.position;
+          primary.minimumDistances[secondary.id].distance = distance;          
+        }
+
+      })
+
+    })    
     
   }
 
